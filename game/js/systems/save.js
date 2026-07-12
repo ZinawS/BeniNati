@@ -44,7 +44,7 @@ export function defaultProfileSave() {
     unlockedWorld: 0,
     clearedWorlds: new Array(WORLDS.length).fill(false),
     abilities: defaultAbilities(),
-    settings: { encouragement: true },
+    settings: { encouragement: true, sfx: true, music: true },
     nightmareMode: false,
     gameCompleted: false,
     stats: {
