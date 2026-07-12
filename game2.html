@@ -1,0 +1,1866 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Nati & Beniyas · Speedy Adventure AAA</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #0a0a14;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: "Segoe UI", "Arial", sans-serif;
+        touch-action: manipulation;
+      }
+      #game-wrapper {
+        width: 100%;
+        height: 100%;
+        max-width: 100vw;
+        max-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      #game-container {
+        border: 3px solid #2a4a6a;
+        border-radius: 8px;
+        box-shadow: 0 0 40px rgba(0, 160, 255, 0.4);
+        transition:
+          box-shadow 0.3s,
+          border-color 0.3s;
+      }
+      #game-container.boss-mode {
+        box-shadow: 0 0 60px rgba(255, 50, 0, 0.6);
+        border-color: #ff4444;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-wrapper">
+      <div id="game-container"></div>
+    </div>
+    <script>
+      (function () {
+        // ═══════════════════════════════════════════════════════════
+        //  NATI & BENIYAS'S SPEEDY ADVENTURE · ULTIMATE AAA EDITION
+        //  Multiple ring types, meaningful difficulty, fully functional
+        // ═══════════════════════════════════════════════════════════
+
+        // ── AUDIO ENGINE ──
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx, musicGain, sfxGain;
+        let musicInterval = null;
+        let musicEnabled = true;
+
+        function initAudio() {
+          if (!audioCtx) {
+            audioCtx = new AudioCtx();
+            musicGain = audioCtx.createGain();
+            musicGain.gain.value = 0.18;
+            musicGain.connect(audioCtx.destination);
+            sfxGain = audioCtx.createGain();
+            sfxGain.gain.value = 0.4;
+            sfxGain.connect(audioCtx.destination);
+          }
+          if (audioCtx.state === "suspended") audioCtx.resume();
+        }
+
+        function playSFX(freq, type, dur, vol = 0.35, dest = sfxGain) {
+          if (!audioCtx || !dest) return;
+          try {
+            const t = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(vol, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            osc.connect(gain);
+            gain.connect(dest);
+            osc.start(t);
+            osc.stop(t + dur);
+          } catch (e) {}
+        }
+
+        function startMusic() {
+          if (musicInterval) return;
+          initAudio();
+          const melody = [
+            { n: 523, d: 180 },
+            { n: 659, d: 180 },
+            { n: 784, d: 180 },
+            { n: 1047, d: 180 },
+            { n: 784, d: 140 },
+            { n: 659, d: 140 },
+            { n: 523, d: 280 },
+            { n: 587, d: 180 },
+            { n: 740, d: 180 },
+            { n: 880, d: 180 },
+            { n: 1175, d: 180 },
+            { n: 880, d: 140 },
+            { n: 740, d: 140 },
+            { n: 587, d: 280 },
+          ];
+          let step = 0;
+          const playNote = () => {
+            if (!audioCtx || !musicGain || !musicEnabled) return;
+            const note = melody[step % melody.length];
+            if (note.n > 0)
+              playSFX(note.n, "square", note.d / 1000, 0.07, musicGain);
+            step++;
+          };
+          musicInterval = setInterval(playNote, 240);
+        }
+
+        function stopMusic() {
+          if (musicInterval) {
+            clearInterval(musicInterval);
+            musicInterval = null;
+          }
+        }
+
+        function setMusicVolume(vol) {
+          if (musicGain) musicGain.gain.value = vol;
+        }
+
+        function toggleMusic() {
+          musicEnabled = !musicEnabled;
+          setMusicVolume(musicEnabled ? 0.18 : 0);
+          if (!musicEnabled && musicInterval) stopMusic();
+          else if (musicEnabled && !musicInterval) startMusic();
+        }
+
+        // ── MOBILE DETECTION ──
+        const isMobile =
+          /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) ||
+          ("ontouchstart" in window && window.innerWidth < 1024);
+
+        // ── GLOBAL STATE ──
+        let gameData = {
+          levelIndex: 0,
+          score: 0,
+          playerName: "Nati",
+          playerTexture: "player_nati",
+          unlockedAbilities: [],
+          rescuedFriends: [],
+          currentWorld: 0,
+          lives: 3,
+          totalRings: 0,
+          difficulty: "normal",
+        };
+
+        // ── SPRITE GENERATOR (multiple rings) ──
+        function generateSprites(scene) {
+          // Player
+          function drawPlayer(canvas, bodyColor, shoeColor) {
+            const ctx = canvas.getContext("2d");
+            canvas.width = 32;
+            canvas.height = 44;
+            ctx.clearRect(0, 0, 32, 44);
+            ctx.fillStyle = bodyColor;
+            ctx.beginPath();
+            ctx.ellipse(16, 26, 10, 12, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(16, 13, 10, 0, Math.PI * 2);
+            ctx.fill();
+            const spikes = [
+              [6, 4],
+              [16, 2],
+              [26, 4],
+              [5, 8],
+              [27, 8],
+            ];
+            spikes.forEach(([sx, sy]) => {
+              ctx.beginPath();
+              ctx.moveTo(sx - 2, sy + 6);
+              ctx.lineTo(sx, sy);
+              ctx.lineTo(sx + 2, sy + 6);
+              ctx.fill();
+            });
+            ctx.fillStyle = "#ffe0bd";
+            ctx.beginPath();
+            ctx.ellipse(16, 28, 7, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#fff";
+            ctx.beginPath();
+            ctx.ellipse(11, 12, 4, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(21, 12, 4, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#000";
+            ctx.beginPath();
+            ctx.arc(12, 12, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(22, 12, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = shoeColor;
+            ctx.fillRect(5, 34, 10, 8);
+            ctx.fillRect(17, 34, 10, 8);
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(4, 40, 12, 2);
+            ctx.fillRect(16, 40, 12, 2);
+            ctx.fillStyle = "#fff";
+            ctx.beginPath();
+            ctx.arc(6, 26, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(26, 26, 4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          let c1 = document.createElement("canvas");
+          drawPlayer(c1, "#1a5cff", "#cc0000");
+          scene.textures.addCanvas("player_nati", c1);
+          let c2 = document.createElement("canvas");
+          drawPlayer(c2, "#ff5500", "#aa2200");
+          scene.textures.addCanvas("player_beni", c2);
+
+          const g = scene.make.graphics({ add: false });
+          // Ground
+          g.clear();
+          g.fillStyle(0x5a3a1a);
+          g.fillRect(0, 0, 40, 40);
+          g.fillStyle(0x33aa22);
+          g.fillRect(0, 0, 40, 10);
+          g.generateTexture("ground", 40, 40);
+          // Gold ring (1pt)
+          g.clear();
+          g.lineStyle(3, 0xffcc00);
+          g.strokeCircle(10, 10, 7);
+          g.generateTexture("ring_gold", 20, 20);
+          // Blue ring (3pt)
+          g.clear();
+          g.lineStyle(3, 0x4488ff);
+          g.strokeCircle(10, 10, 7);
+          g.generateTexture("ring_blue", 20, 20);
+          // Red ring (5pt)
+          g.clear();
+          g.lineStyle(3, 0xff4444);
+          g.strokeCircle(10, 10, 7);
+          g.generateTexture("ring_red", 20, 20);
+          // Rainbow ring (10pt)
+          g.clear();
+          g.lineStyle(2, 0xff0000);
+          g.strokeCircle(10, 10, 8);
+          g.lineStyle(2, 0xff8800);
+          g.strokeCircle(10, 10, 6);
+          g.lineStyle(2, 0xffff00);
+          g.strokeCircle(10, 10, 4);
+          g.generateTexture("ring_rainbow", 20, 20);
+          // Spike
+          g.clear();
+          g.fillStyle(0xaa4444);
+          g.fillTriangle(20, 0, 0, 36, 40, 36);
+          g.generateTexture("spike", 40, 40);
+          // Spring
+          g.clear();
+          g.fillStyle(0xff6600);
+          g.fillRect(4, 16, 32, 22);
+          g.fillStyle(0xffaa00);
+          g.fillRect(10, 2, 20, 16);
+          g.generateTexture("spring", 40, 40);
+          // Speed pad
+          g.clear();
+          g.fillStyle(0xff8800);
+          g.fillTriangle(0, 10, 36, 20, 0, 30);
+          g.generateTexture("speedpad", 40, 40);
+          // Goal
+          g.clear();
+          g.fillStyle(0xdddddd);
+          g.fillRect(0, 0, 40, 80);
+          g.fillStyle(0xffdd00);
+          g.fillRect(8, 10, 24, 24);
+          g.generateTexture("goal", 40, 80);
+          // Enemies
+          g.clear();
+          g.fillStyle(0xcc3333);
+          g.fillRect(4, 12, 32, 20);
+          g.generateTexture("enemy_crab", 40, 30);
+          g.clear();
+          g.fillStyle(0x5555aa);
+          g.fillRect(12, 0, 16, 28);
+          g.fillStyle(0xff0000);
+          g.fillCircle(20, 14, 5);
+          g.generateTexture("enemy_drone", 40, 30);
+          // Boss
+          g.clear();
+          g.fillStyle(0x880000);
+          g.fillRect(0, 0, 80, 60);
+          g.fillStyle(0xff2222);
+          g.fillRect(10, 8, 60, 44);
+          g.generateTexture("boss", 80, 60);
+          // Particle
+          g.clear();
+          g.fillStyle(0xffffff);
+          g.fillCircle(4, 4, 4);
+          g.generateTexture("particle", 8, 8);
+          // Gem
+          g.clear();
+          g.fillStyle(0x00ccff);
+          g.fillTriangle(10, 0, 20, 14, 0, 14);
+          g.generateTexture("gem", 20, 16);
+          // Lava
+          g.clear();
+          g.fillStyle(0xff3300);
+          g.fillRect(0, 0, 40, 40);
+          g.fillStyle(0xffaa00);
+          g.fillRect(0, 8, 40, 6);
+          g.generateTexture("lava", 40, 40);
+          // Rail
+          g.clear();
+          g.fillStyle(0x888888);
+          g.fillRect(0, 0, 40, 6);
+          g.generateTexture("rail", 40, 8);
+          // Checkpoint
+          g.clear();
+          g.fillStyle(0x4488ff);
+          g.fillCircle(20, 20, 18);
+          g.fillStyle(0x66aaff);
+          g.fillCircle(20, 20, 12);
+          g.generateTexture("checkpoint", 40, 40);
+        }
+
+        // ── WORLD THEMES ──
+        const WORLD_THEMES = [
+          {
+            name: "Green Hills",
+            bg: "#87CEEB",
+            groundTint: 0x33aa22,
+            sky: ["#5599dd", "#aaddff"],
+          },
+          {
+            name: "Crystal Cave",
+            bg: "#2a2a4a",
+            groundTint: 0x445588,
+            sky: ["#111133", "#334466"],
+          },
+          {
+            name: "Volcano Kingdom",
+            bg: "#331111",
+            groundTint: 0x553322,
+            sky: ["#220000", "#661100"],
+            hasLava: true,
+            weather: "embers",
+          },
+          {
+            name: "Sky Islands",
+            bg: "#ffcc88",
+            groundTint: 0xddccaa,
+            sky: ["#ff9966", "#ffddcc"],
+            gravity: 800,
+          },
+          {
+            name: "Final Fortress",
+            bg: "#1a0a0a",
+            groundTint: 0x664444,
+            sky: ["#330000", "#660000"],
+            hasLava: true,
+          },
+        ];
+
+        const FRIENDS = ["Tails", "Knuckles", "Amy", "Shadow", "Blaze"];
+        const ABILITIES = [
+          "Double Jump",
+          "Spin Dash",
+          "Wall Jump",
+          "Air Dash",
+          "Super Form",
+        ];
+
+        // ── BUILD ALL LEVELS (15 acts) ──
+        function buildAllLevels() {
+          const levels = [];
+          for (let w = 0; w < 5; w++) {
+            for (let a = 1; a <= 3; a++) {
+              const hasLava = WORLD_THEMES[w].hasLava;
+              let map;
+              if (a === 1) {
+                map = [
+                  "                                                  ",
+                  "            R   g    B R D                        ",
+                  "     S    xxx         xxxxx     S                 ",
+                  "  P            e                    e       G     ",
+                  "xxxxxx  E           xxxxx   E          xxxxxxxxxxx",
+                  "      xxx                xxxxx                    ",
+                ];
+              } else if (a === 2) {
+                map = [
+                  "                                                        ",
+                  "              R R     g       R                         ",
+                  "       S    xxxxx           xxxxx    S                  ",
+                  "    P           e       E           e          G        ",
+                  "xxxxxx    E         xxxxx        E        xxxxxxxxxxxxxx",
+                  "        xxx             xxxxx                          ",
+                ];
+              } else {
+                map = [
+                  "                                                            ",
+                  "                R   g      B R D                           ",
+                  "         S    xxx           xxxxx     S                    ",
+                  "      P            e                      e           B     ",
+                  "  xxxxxx    E             xxxxx     E            xxxxxxxxxxxx",
+                  "        xxx                  xxxxx                         ",
+                ];
+              }
+              if (hasLava) {
+                map[5] = "      LLL                LLLLL                    ";
+              }
+              levels.push({
+                world: w,
+                act: a,
+                map: map,
+                enemies: [
+                  { x: 330 + w * 15, y: 170, type: "crab" },
+                  { x: 540 + w * 10, y: 170, type: "drone" },
+                ],
+                boss: a === 3,
+              });
+            }
+          }
+          return levels;
+        }
+        const LEVELS = buildAllLevels();
+
+        // ── NARRATION MESSAGES ──
+        const narrationMessages = [
+          "Keep trying—you can do it!",
+          "Every challenge teaches you something new.",
+          "Think creatively to find another path.",
+          "Great explorers never give up!",
+          "Learning comes from practice.",
+          "Believe in yourself!",
+          "Every mistake is a step toward success.",
+          "Use your imagination!",
+          "Solve problems one step at a time.",
+          "Be curious and explore!",
+        ];
+
+        // ═══════════════ MAIN MENU ═══════════════
+        class MainMenu extends Phaser.Scene {
+          constructor() {
+            super("MainMenu");
+          }
+          create() {
+            initAudio();
+            const w = this.scale.width;
+            const h = this.scale.height;
+            this.cameras.main.setBackgroundColor("#0a1a2a");
+            this.add
+              .text(w / 2, h * 0.08, "★ NATI & BENIYAS'S ★", {
+                fontSize: "clamp(20px,5vw,36px)",
+                fill: "#ffcc00",
+                fontStyle: "bold",
+                stroke: "#000",
+                strokeThickness: 4,
+              })
+              .setOrigin(0.5);
+            this.add
+              .text(w / 2, h * 0.17, "SPEEDY ADVENTURE", {
+                fontSize: "clamp(28px,7vw,50px)",
+                fill: "#fff",
+                fontStyle: "bold",
+                stroke: "#0066ff",
+                strokeThickness: 6,
+              })
+              .setOrigin(0.5);
+            this.add
+              .text(w / 2, h * 0.25, "AAA Ultimate Edition", {
+                fontSize: "clamp(12px,2.5vw,18px)",
+                fill: "#aaccff",
+              })
+              .setOrigin(0.5);
+
+            const btnH = "clamp(18px,3.5vw,28px)";
+            const btnPad = { x: 16, y: 8 };
+
+            const btnNati = this.add
+              .text(w / 2 - w * 0.15, h * 0.38, "[ ⚡ NATI ]", {
+                fontSize: btnH,
+                fill: "#4488ff",
+                backgroundColor: "#112244",
+                padding: btnPad,
+              })
+              .setOrigin(0.5)
+              .setInteractive();
+            const btnBeni = this.add
+              .text(w / 2 + w * 0.15, h * 0.38, "[ 🔥 BENIYAS ]", {
+                fontSize: btnH,
+                fill: "#ff6644",
+                backgroundColor: "#441111",
+                padding: btnPad,
+              })
+              .setOrigin(0.5)
+              .setInteractive();
+            const btnHow = this.add
+              .text(w / 2, h * 0.5, "📖 HOW TO PLAY", {
+                fontSize: btnH,
+                fill: "#ddd",
+                backgroundColor: "#222",
+                padding: btnPad,
+              })
+              .setOrigin(0.5)
+              .setInteractive();
+            const btnSettings = this.add
+              .text(w / 2, h * 0.6, "⚙️ SETTINGS", {
+                fontSize: btnH,
+                fill: "#ddd",
+                backgroundColor: "#222",
+                padding: btnPad,
+              })
+              .setOrigin(0.5)
+              .setInteractive();
+            const btnCredits = this.add
+              .text(w / 2, h * 0.7, "🎵 Music: ON  |  ❤️ Credits", {
+                fontSize: "clamp(11px,2vw,16px)",
+                fill: "#aaa",
+                backgroundColor: "#111",
+                padding: { x: 8, y: 4 },
+              })
+              .setOrigin(0.5)
+              .setInteractive();
+
+            btnNati.on("pointerdown", () => {
+              gameData.playerName = "Nati";
+              gameData.playerTexture = "player_nati";
+              gameData.levelIndex = 0;
+              gameData.score = 0;
+              gameData.lives = 3;
+              gameData.totalRings = 0;
+              gameData.unlockedAbilities = [];
+              gameData.rescuedFriends = [];
+              gameData.currentWorld = 0;
+              startMusic();
+              this.scene.start("GameScene", { ...gameData });
+            });
+            btnBeni.on("pointerdown", () => {
+              gameData.playerName = "Beniyas";
+              gameData.playerTexture = "player_beni";
+              gameData.levelIndex = 0;
+              gameData.score = 0;
+              gameData.lives = 3;
+              gameData.totalRings = 0;
+              gameData.unlockedAbilities = [];
+              gameData.rescuedFriends = [];
+              gameData.currentWorld = 0;
+              startMusic();
+              this.scene.start("GameScene", { ...gameData });
+            });
+            btnHow.on("pointerdown", () => this.scene.start("HowToPlay"));
+            btnSettings.on("pointerdown", () => this.scene.start("Settings"));
+            btnCredits.on("pointerdown", () => this.scene.start("Credits"));
+
+            const infoText = isMobile
+              ? "📱 Touch controls enabled"
+              : "🎮 Keyboard: ARROWS move/jump · Z spin · X dash · SHIFT super";
+            this.add
+              .text(w / 2, h * 0.88, infoText, {
+                fontSize: "clamp(9px,1.5vw,13px)",
+                fill: "#666",
+              })
+              .setOrigin(0.5);
+          }
+        }
+
+        // ═══════════════ HOW TO PLAY ═══════════════
+        class HowToPlay extends Phaser.Scene {
+          constructor() {
+            super("HowToPlay");
+          }
+          create() {
+            const w = this.scale.width;
+            const h = this.scale.height;
+            this.cameras.main.setBackgroundColor("#111122");
+            this.add
+              .text(w / 2, h * 0.05, "CONTROLS & ABILITIES", {
+                fontSize: "clamp(20px,4vw,32px)",
+                fill: "#ffcc00",
+                fontStyle: "bold",
+              })
+              .setOrigin(0.5);
+            const controls = [
+              "🡄 🡆  Move left / right",
+              "🡅  Jump (Double Jump after unlock)",
+              "Z (hold+release) Spin Dash",
+              "X  Air Dash / Homing Attack",
+              "SHIFT  Super Form (50 rings)",
+              "P / ESC  Pause",
+              "⚠️ Lava burns instantly! Avoid it!",
+              "💍 Collect rings of different colors!",
+              "📱 Mobile: Use on-screen buttons",
+            ];
+            controls.forEach((txt, i) => {
+              this.add.text(w * 0.15, h * 0.15 + i * h * 0.08, txt, {
+                fontSize: "clamp(12px,2.5vw,20px)",
+                fill: "#fff",
+              });
+            });
+            const back = this.add
+              .text(w / 2, h * 0.88, "[ BACK TO MENU ]", {
+                fontSize: "clamp(14px,3vw,22px)",
+                fill: "#44ff44",
+                backgroundColor: "#224422",
+                padding: { x: 12, y: 6 },
+              })
+              .setOrigin(0.5)
+              .setInteractive();
+            back.on("pointerdown", () => this.scene.start("MainMenu"));
+          }
+        }
+
+        // ═══════════════ SETTINGS ═══════════════
+        class Settings extends Phaser.Scene {
+          constructor() {
+            super("Settings");
+          }
+          create() {
+            const w = this.scale.width;
+            const h = this.scale.height;
+            this.cameras.main.setBackgroundColor("#112222");
+            this.add
+              .text(w / 2, h * 0.1, "SETTINGS", {
+                fontSize: "clamp(24px,5vw,36px)",
+                fill: "#ffcc00",
+                fontStyle: "bold",
+              })
+              .setOrigin(0.5);
+            const musicBtn = this.add
+              .text(w / 2, h * 0.3, `Music: ${musicEnabled ? "ON" : "OFF"}`, {
+                fontSize: "clamp(16px,3.5vw,26px)",
+                fill: "#fff",
+                backgroundColor: "#333",
+                padding: { x: 16, y: 8 },
+              })
+              .setOrigin(0.5)
+              .setInteractive();
+            musicBtn.on("pointerdown", () => {
+              toggleMusic();
+              musicBtn.setText(`Music: ${musicEnabled ? "ON" : "OFF"}`);
+            });
+            const diffBtn = this.add
+              .text(w / 2, h * 0.45, `Difficulty: ${gameData.difficulty}`, {
+                fontSize: "clamp(16px,3.5vw,26px)",
+                fill: "#fff",
+                backgroundColor: "#333",
+                padding: { x: 16, y: 8 },
+              })
+              .setOrigin(0.5)
+              .setInteractive();
+            diffBtn.on("pointerdown", () => {
+              const diffs = ["easy", "normal", "hard"];
+              const cur = gameData.difficulty;
+              gameData.difficulty =
+                diffs[(diffs.indexOf(cur) + 1) % diffs.length];
+              diffBtn.setText(`Difficulty: ${gameData.difficulty}`);
+            });
+            const back = this.add
+              .text(w / 2, h * 0.7, "[ BACK TO MENU ]", {
+                fontSize: "clamp(14px,3vw,22px)",
+                fill: "#44ff44",
+                backgroundColor: "#224422",
+                padding: { x: 12, y: 6 },
+              })
+              .setOrigin(0.5)
+              .setInteractive();
+            back.on("pointerdown", () => this.scene.start("MainMenu"));
+          }
+        }
+
+        // ═══════════════ CREDITS ═══════════════
+        class Credits extends Phaser.Scene {
+          constructor() {
+            super("Credits");
+          }
+          create() {
+            const w = this.scale.width;
+            const h = this.scale.height;
+            this.cameras.main.setBackgroundColor("#000022");
+            this.add
+              .text(w / 2, h * 0.2, "CREDITS", {
+                fontSize: "clamp(28px,5vw,40px)",
+                fill: "#ffcc00",
+              })
+              .setOrigin(0.5);
+            this.add
+              .text(w / 2, h * 0.4, "Game by Nati & Beniyas", {
+                fontSize: "clamp(16px,3vw,26px)",
+                fill: "#fff",
+              })
+              .setOrigin(0.5);
+            this.add
+              .text(w / 2, h * 0.5, "Music: Procedural Chiptune", {
+                fontSize: "clamp(12px,2.5vw,20px)",
+                fill: "#aaa",
+              })
+              .setOrigin(0.5);
+            const back = this.add
+              .text(w / 2, h * 0.8, "[ BACK TO MENU ]", {
+                fontSize: "clamp(14px,3vw,22px)",
+                fill: "#44ff44",
+                backgroundColor: "#224422",
+                padding: { x: 12, y: 6 },
+              })
+              .setOrigin(0.5)
+              .setInteractive();
+            back.on("pointerdown", () => this.scene.start("MainMenu"));
+          }
+        }
+
+        // ═══════════════ GAME SCENE ═══════════════
+        class GameScene extends Phaser.Scene {
+          constructor() {
+            super("GameScene");
+          }
+          init(data) {
+            this.levelIndex = data.levelIndex || 0;
+            this.score = data.score || 0;
+            this.playerName = data.playerName || "Nati";
+            this.playerTexture = data.playerTexture || "player_nati";
+            this.unlockedAbilities = data.unlockedAbilities || [];
+            this.rescuedFriends = data.rescuedFriends || [];
+            this.currentWorld = data.currentWorld || 0;
+            this.lives = data.lives || 3;
+            this.totalRings = data.totalRings || 0;
+            this.difficulty = data.difficulty || "normal";
+            this.isInvulnerable = false;
+            this.spinCharge = 0;
+            this.airDashesLeft = 0;
+            this.hasDoubleJumped = false;
+            this.bossActive = false;
+            this.bossHP = 0;
+            this.bossMaxHP = 0;
+            this.bossPhase = 0;
+            this.superActive = false;
+            this.superTimer = 0;
+            this.checkpointX = 0;
+            this.checkpointY = 0;
+            this.narrationTimer = 0;
+            this.paused = false;
+          }
+          preload() {
+            generateSprites(this);
+          }
+          create() {
+            initAudio();
+            const level = LEVELS[this.levelIndex];
+            if (!level) {
+              this.scene.start("Win", {
+                score: this.totalRings,
+                playerName: this.playerName,
+                friends: this.rescuedFriends.length,
+              });
+              return;
+            }
+            const theme = WORLD_THEMES[level.world];
+            this.currentWorld = level.world;
+            this.physics.world.gravity.y = theme.gravity || 1300;
+            this.cameras.main.setBackgroundColor(theme.bg);
+
+            this.platforms = this.physics.add.staticGroup();
+            this.rings = this.physics.add.group({ allowGravity: false });
+            this.spikes = this.physics.add.staticGroup();
+            this.springs = this.physics.add.staticGroup();
+            this.speedpads = this.physics.add.staticGroup();
+            this.goal = this.physics.add.staticGroup();
+            this.gems = this.physics.add.group({ allowGravity: false });
+            this.rails = this.physics.add.staticGroup();
+            this.lavaTiles = this.physics.add.staticGroup();
+            this.checkpoints = this.physics.add.staticGroup();
+            this.enemies = [];
+            this.bossSprites = [];
+            this.bossProjectiles = this.physics.add.group({
+              allowGravity: false,
+            });
+            this.movingPlatforms = [];
+
+            this.buildLevel(level);
+
+            this.player = this.physics.add.sprite(
+              this.spawnX,
+              this.spawnY,
+              this.playerTexture,
+            );
+            this.player.setBounce(0.05);
+            this.player.setCollideWorldBounds(true);
+            this.player.setMaxVelocity(520, 900);
+            this.player.setDragX(750);
+            this.player.setSize(20, 36);
+            this.player.setDepth(10);
+
+            this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+            const mapW = level.map[0].length * 40;
+            this.cameras.main.setBounds(0, 0, mapW, 600);
+            this.physics.world.setBounds(0, 0, mapW, 600);
+
+            this.physics.add.collider(
+              this.player,
+              this.platforms,
+              this.onLand,
+              null,
+              this,
+            );
+            this.physics.add.overlap(
+              this.player,
+              this.rings,
+              this.collectRing,
+              null,
+              this,
+            );
+            this.physics.add.collider(
+              this.player,
+              this.spikes,
+              this.hitSpike,
+              null,
+              this,
+            );
+            this.physics.add.overlap(
+              this.player,
+              this.springs,
+              this.hitSpring,
+              null,
+              this,
+            );
+            this.physics.add.overlap(
+              this.player,
+              this.speedpads,
+              this.hitSpeedPad,
+              null,
+              this,
+            );
+            this.physics.add.overlap(
+              this.player,
+              this.goal,
+              this.reachGoal,
+              null,
+              this,
+            );
+            this.physics.add.overlap(
+              this.player,
+              this.gems,
+              this.collectGem,
+              null,
+              this,
+            );
+            this.physics.add.overlap(
+              this.player,
+              this.rails,
+              this.startGrind,
+              null,
+              this,
+            );
+            this.physics.add.overlap(
+              this.player,
+              this.lavaTiles,
+              this.hitLava,
+              null,
+              this,
+            );
+            this.physics.add.overlap(
+              this.player,
+              this.checkpoints,
+              this.hitCheckpoint,
+              null,
+              this,
+            );
+            this.physics.add.overlap(
+              this.player,
+              this.bossProjectiles,
+              this.hitByBossProjectile,
+              null,
+              this,
+            );
+
+            this.enemies.forEach((en) => {
+              this.physics.add.overlap(
+                this.player,
+                en.sprite,
+                this.hitEnemy,
+                null,
+                this,
+              );
+              this.physics.add.collider(en.sprite, this.platforms);
+            });
+
+            // Input
+            this.cursors = this.input.keyboard.createCursorKeys();
+            this.keyZ = this.input.keyboard.addKey("Z");
+            this.keyX = this.input.keyboard.addKey("X");
+            this.keyShift = this.input.keyboard.addKey("SHIFT");
+            this.keyP = this.input.keyboard.addKey("P");
+            this.keyESC = this.input.keyboard.addKey("ESC");
+
+            this.mobileLeft = false;
+            this.mobileRight = false;
+            this.mobileJump = false;
+            this.mobileAction = false;
+            this.mobileSuper = false;
+            if (isMobile) this.createMobileControls();
+
+            this.input.keyboard.on("keydown-P", () => this.togglePause());
+            this.input.keyboard.on("keydown-ESC", () => this.togglePause());
+
+            this.createHUD();
+            this.pauseOverlay = this.createPauseOverlay();
+
+            this.narrationText = this.add
+              .text(this.scale.width / 2, this.scale.height - 50, "", {
+                fontSize: "clamp(12px,2.5vw,18px)",
+                fill: "#ffdd44",
+                stroke: "#000",
+                strokeThickness: 3,
+                fontStyle: "italic",
+                align: "center",
+              })
+              .setOrigin(0.5)
+              .setDepth(150)
+              .setScrollFactor(0);
+
+            this.checkpointX = this.spawnX;
+            this.checkpointY = this.spawnY;
+            if (level.boss)
+              this.time.delayedCall(800, () => this.startBossFight());
+            this.narrationTimer = 10000;
+
+            // Apply difficulty modifiers
+            this.applyDifficulty();
+          }
+          applyDifficulty() {
+            // Enemy count multiplier
+            const diffMult =
+              this.difficulty === "easy"
+                ? 0.6
+                : this.difficulty === "hard"
+                  ? 1.5
+                  : 1;
+            // Adjust enemy speed
+            this.enemies.forEach((en) => {
+              if (this.difficulty === "hard") en.speedMult = 1.6;
+              else if (this.difficulty === "easy") en.speedMult = 0.7;
+              else en.speedMult = 1;
+            });
+            // Boss HP
+            if (this.bossActive && this.bossCore) {
+              this.bossMaxHP = Math.floor(
+                this.bossMaxHP *
+                  (this.difficulty === "hard"
+                    ? 1.5
+                    : this.difficulty === "easy"
+                      ? 0.6
+                      : 1),
+              );
+              this.bossHP = this.bossMaxHP;
+            }
+            // Damage behavior: easy mode no ring loss on hit? Keep rings but still scatter?
+            if (this.difficulty === "easy") {
+              this.easyModeNoRingLoss = true;
+            } else {
+              this.easyModeNoRingLoss = false;
+            }
+          }
+          createMobileControls() {
+            const w = this.scale.width;
+            const h = this.scale.height;
+            const btnStyle = {
+              fontSize: "28px",
+              fill: "#fff",
+              backgroundColor: "rgba(255,255,255,0.2)",
+              padding: { x: 16, y: 10 },
+            };
+            const leftBtn = this.add
+              .text(60, h - 100, "◀", btnStyle)
+              .setOrigin(0.5)
+              .setInteractive()
+              .setDepth(300)
+              .setScrollFactor(0)
+              .setAlpha(0.7);
+            const rightBtn = this.add
+              .text(140, h - 100, "▶", btnStyle)
+              .setOrigin(0.5)
+              .setInteractive()
+              .setDepth(300)
+              .setScrollFactor(0)
+              .setAlpha(0.7);
+            const jumpBtn = this.add
+              .text(w - 140, h - 100, "▲ JUMP", {
+                ...btnStyle,
+                fontSize: "22px",
+              })
+              .setOrigin(0.5)
+              .setInteractive()
+              .setDepth(300)
+              .setScrollFactor(0)
+              .setAlpha(0.7);
+            const actionBtn = this.add
+              .text(w - 60, h - 160, "⚡", { ...btnStyle, fontSize: "26px" })
+              .setOrigin(0.5)
+              .setInteractive()
+              .setDepth(300)
+              .setScrollFactor(0)
+              .setAlpha(0.7);
+            const superBtn = this.add
+              .text(w - 60, h - 60, "⭐", { ...btnStyle, fontSize: "20px" })
+              .setOrigin(0.5)
+              .setInteractive()
+              .setDepth(300)
+              .setScrollFactor(0)
+              .setAlpha(0.7);
+            leftBtn.on("pointerdown", () => {
+              this.mobileLeft = true;
+              initAudio();
+            });
+            leftBtn.on("pointerup", () => {
+              this.mobileLeft = false;
+            });
+            leftBtn.on("pointerout", () => {
+              this.mobileLeft = false;
+            });
+            rightBtn.on("pointerdown", () => {
+              this.mobileRight = true;
+              initAudio();
+            });
+            rightBtn.on("pointerup", () => {
+              this.mobileRight = false;
+            });
+            rightBtn.on("pointerout", () => {
+              this.mobileRight = false;
+            });
+            jumpBtn.on("pointerdown", () => {
+              this.mobileJump = true;
+              initAudio();
+            });
+            jumpBtn.on("pointerup", () => {
+              this.mobileJump = false;
+            });
+            jumpBtn.on("pointerout", () => {
+              this.mobileJump = false;
+            });
+            actionBtn.on("pointerdown", () => {
+              this.mobileAction = true;
+              initAudio();
+            });
+            actionBtn.on("pointerup", () => {
+              this.mobileAction = false;
+            });
+            actionBtn.on("pointerout", () => {
+              this.mobileAction = false;
+            });
+            superBtn.on("pointerdown", () => {
+              this.mobileSuper = true;
+              initAudio();
+            });
+            superBtn.on("pointerup", () => {
+              this.mobileSuper = false;
+            });
+            superBtn.on("pointerout", () => {
+              this.mobileSuper = false;
+            });
+          }
+          buildLevel(level) {
+            const tileSize = 40;
+            const mapArray = level.map;
+            // Ring type mapping: R=gold, B=blue, D=red, W=rainbow
+            const ringMap = {
+              R: { texture: "ring_gold", value: 1, color: "gold" },
+              B: { texture: "ring_blue", value: 3, color: "blue" },
+              D: { texture: "ring_red", value: 5, color: "red" },
+              W: { texture: "ring_rainbow", value: 10, color: "rainbow" },
+            };
+            for (let y = 0; y < mapArray.length; y++) {
+              const row = mapArray[y];
+              for (let x = 0; x < row.length; x++) {
+                const char = row[x];
+                const px = x * tileSize + tileSize / 2;
+                const py = y * tileSize + tileSize / 2 + 150;
+                if (char === "x") {
+                  const p = this.platforms.create(px, py, "ground");
+                  if (WORLD_THEMES[level.world].groundTint)
+                    p.setTint(WORLD_THEMES[level.world].groundTint);
+                } else if (ringMap[char]) {
+                  const ringData = ringMap[char];
+                  const ring = this.rings.create(px, py, ringData.texture);
+                  ring.setData("value", ringData.value);
+                  ring.setData("color", ringData.color);
+                } else if (char === "E") this.spikes.create(px, py, "spike");
+                else if (char === "S") this.springs.create(px, py, "spring");
+                else if (char === ">")
+                  this.speedpads.create(px, py, "speedpad");
+                else if (char === "G" || char === "B")
+                  this.goal.create(px, py - 20, "goal");
+                else if (char === "g") this.gems.create(px, py, "gem");
+                else if (char === "r") this.rails.create(px, py, "rail");
+                else if (char === "L") this.lavaTiles.create(px, py, "lava");
+                else if (char === "C")
+                  this.checkpoints.create(px, py, "checkpoint");
+                else if (char === "M") {
+                  const mp = this.physics.add.image(px, py, "ground");
+                  mp.setImmovable(true);
+                  mp.body.allowGravity = false;
+                  if (WORLD_THEMES[level.world].groundTint)
+                    mp.setTint(WORLD_THEMES[level.world].groundTint);
+                  this.physics.add.collider(this.player, mp);
+                  this.movingPlatforms.push({ obj: mp, startX: px, dir: 1 });
+                } else if (char === "P") {
+                  this.spawnX = px;
+                  this.spawnY = py;
+                  this.checkpointX = px;
+                  this.checkpointY = py;
+                }
+              }
+            }
+            if (level.enemies) {
+              level.enemies.forEach((ed) => {
+                const tex = ed.type === "drone" ? "enemy_drone" : "enemy_crab";
+                const sprite = this.physics.add.sprite(ed.x, ed.y, tex);
+                sprite.setCollideWorldBounds(true);
+                this.enemies.push({
+                  sprite,
+                  type: ed.type,
+                  startX: ed.x,
+                  dir: 1,
+                  speedMult: 1,
+                });
+              });
+            }
+          }
+          createHUD() {
+            this.hudText = this.add
+              .text(8, 6, "", {
+                fontSize: "clamp(10px,2vw,15px)",
+                fill: "#fff",
+                fontFamily: "monospace",
+                stroke: "#000",
+                strokeThickness: 2,
+                backgroundColor: "rgba(0,0,0,0.6)",
+                padding: { x: 6, y: 3 },
+              })
+              .setScrollFactor(0)
+              .setDepth(101);
+            this.updateHUD();
+          }
+          updateHUD() {
+            const wName = WORLD_THEMES[this.currentWorld].name;
+            const act = LEVELS[this.levelIndex]
+              ? LEVELS[this.levelIndex].act
+              : "?";
+            let txt = `${this.playerName} | 💍${this.score} | 🌍${wName} A${act} | ❤️${this.lives} | ⭐${this.unlockedAbilities.length}`;
+            if (this.bossActive)
+              txt = `👾BOSS HP:${"█".repeat(Math.ceil((this.bossHP / this.bossMaxHP) * 15))}${"░".repeat(15 - Math.ceil((this.bossHP / this.bossMaxHP) * 15))} | 💍${this.score}`;
+            this.hudText.setText(txt);
+          }
+          createPauseOverlay() {
+            const w = this.scale.width;
+            const h = this.scale.height;
+            const overlay = this.add
+              .graphics()
+              .setDepth(200)
+              .setScrollFactor(0);
+            overlay.fillStyle(0x000000, 0.75);
+            overlay.fillRect(0, 0, w, h);
+            const resumeBtn = this.add
+              .text(w / 2, h * 0.3, "▶ RESUME", {
+                fontSize: "clamp(18px,4vw,28px)",
+                fill: "#fff",
+                backgroundColor: "#225522",
+                padding: { x: 16, y: 8 },
+              })
+              .setOrigin(0.5)
+              .setInteractive()
+              .setDepth(201)
+              .setScrollFactor(0);
+            const restartBtn = this.add
+              .text(w / 2, h * 0.45, "🔄 RESTART", {
+                fontSize: "clamp(16px,3.5vw,24px)",
+                fill: "#ffaa00",
+                backgroundColor: "#553300",
+                padding: { x: 16, y: 8 },
+              })
+              .setOrigin(0.5)
+              .setInteractive()
+              .setDepth(201)
+              .setScrollFactor(0);
+            const quitBtn = this.add
+              .text(w / 2, h * 0.6, "🏠 MENU", {
+                fontSize: "clamp(16px,3.5vw,24px)",
+                fill: "#ff6666",
+                backgroundColor: "#440000",
+                padding: { x: 16, y: 8 },
+              })
+              .setOrigin(0.5)
+              .setInteractive()
+              .setDepth(201)
+              .setScrollFactor(0);
+            const elements = [overlay, resumeBtn, restartBtn, quitBtn];
+            elements.forEach((el) => el.setVisible(false));
+            resumeBtn.on("pointerdown", () => this.togglePause());
+            restartBtn.on("pointerdown", () => {
+              this.togglePause();
+              this.scene.restart({
+                ...gameData,
+                levelIndex: this.levelIndex,
+                lives: this.lives,
+                score: 0,
+                totalRings: this.totalRings,
+              });
+            });
+            quitBtn.on("pointerdown", () => {
+              this.togglePause();
+              stopMusic();
+              this.scene.start("MainMenu");
+            });
+            return { elements, active: false };
+          }
+          togglePause() {
+            this.paused = !this.paused;
+            this.pauseOverlay.elements.forEach((el) =>
+              el.setVisible(this.paused),
+            );
+            if (this.paused) this.physics.pause();
+            else this.physics.resume();
+          }
+          startBossFight() {
+            this.bossActive = true;
+            this.bossMaxHP = 30 + this.currentWorld * 15;
+            this.bossHP = this.bossMaxHP;
+            this.bossPhase = 0;
+            const container = document.getElementById("game-container");
+            if (container) container.classList.add("boss-mode");
+            this.bossCore = this.physics.add
+              .sprite(680, 250, "boss")
+              .setScale(2)
+              .setImmovable(true)
+              .setDepth(5);
+            this.bossCore.body.allowGravity = false;
+            this.bossSprites.push(this.bossCore);
+            this.bossAttackTimer = this.time.addEvent({
+              delay: 1400,
+              loop: true,
+              callback: () => this.bossAttack(),
+            });
+            this.showNarration("⚡ Boss battle! Be brave!");
+            // Reapply difficulty to boss HP
+            if (this.difficulty === "hard") {
+              this.bossMaxHP = Math.floor(this.bossMaxHP * 1.5);
+              this.bossHP = this.bossMaxHP;
+            } else if (this.difficulty === "easy") {
+              this.bossMaxHP = Math.floor(this.bossMaxHP * 0.6);
+              this.bossHP = this.bossMaxHP;
+            }
+          }
+          bossAttack() {
+            if (!this.bossActive || !this.bossCore?.active) return;
+            if (this.bossHP < this.bossMaxHP * 0.5 && this.bossPhase === 0) {
+              this.bossPhase = 1;
+              this.bossCore.setTint(0xff6600);
+            }
+            if (this.bossHP < this.bossMaxHP * 0.2 && this.bossPhase === 1) {
+              this.bossPhase = 2;
+              this.bossCore.setTint(0xff0000);
+            }
+            const bx = this.bossCore.x;
+            const by = this.bossCore.y;
+            for (let i = -1; i <= 1; i++) {
+              const proj = this.physics.add
+                .sprite(bx, by, "particle")
+                .setScale(1.8)
+                .setTint(0xff4444);
+              proj.body.allowGravity = false;
+              const angle =
+                Phaser.Math.Angle.Between(
+                  bx,
+                  by,
+                  this.player.x,
+                  this.player.y,
+                ) +
+                i * 0.25;
+              proj.setVelocity(Math.cos(angle) * 320, Math.sin(angle) * 320);
+              this.bossProjectiles.add(proj);
+              this.time.delayedCall(3000, () => {
+                if (proj.active) proj.destroy();
+              });
+            }
+          }
+          hitByBossProjectile(player, proj) {
+            if (this.isInvulnerable || this.superActive) return;
+            proj.destroy();
+            this.takeDamage();
+          }
+          onLand() {
+            this.hasDoubleJumped = false;
+            this.airDashesLeft = this.unlockedAbilities.includes("Air Dash")
+              ? 1
+              : 0;
+            this.checkpointX = this.player.x;
+            this.checkpointY = this.player.y;
+          }
+          showNarration(msg) {
+            if (!this.narrationText) return;
+            this.narrationText.setText(msg);
+            this.narrationText.setAlpha(1);
+            this.tweens.add({
+              targets: this.narrationText,
+              alpha: 0,
+              duration: 3500,
+              delay: 2000,
+              onComplete: () => {
+                if (this.narrationText) this.narrationText.setText("");
+              },
+            });
+          }
+          update(time, delta) {
+            if (!this.player?.active || this.paused) return;
+            const onGround =
+              this.player.body.touching.down || this.player.body.blocked.down;
+            const leftDown = this.cursors.left.isDown || this.mobileLeft;
+            const rightDown = this.cursors.right.isDown || this.mobileRight;
+            const upJustDown =
+              Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
+              this.mobileJump;
+            const zDown = this.keyZ.isDown;
+            const zJustUp = Phaser.Input.Keyboard.JustUp(this.keyZ);
+            const xJustDown =
+              Phaser.Input.Keyboard.JustDown(this.keyX) || this.mobileAction;
+            const shiftDown = this.keyShift.isDown || this.mobileSuper;
+            this.mobileJump = false;
+            this.mobileAction = false;
+            this.mobileSuper = false;
+
+            if (
+              zDown &&
+              onGround &&
+              this.unlockedAbilities.includes("Spin Dash")
+            ) {
+              this.spinCharge = Math.min(this.spinCharge + delta * 0.2, 200);
+              this.player.setVelocityX(0);
+            } else if (
+              zJustUp &&
+              this.spinCharge > 15 &&
+              this.unlockedAbilities.includes("Spin Dash")
+            ) {
+              const dash = 600 + this.spinCharge * 5;
+              this.player.setVelocityX(this.player.flipX ? -dash : dash);
+              this.spinCharge = 0;
+              playSFX(100, "sawtooth", 0.15, 0.2);
+            } else if (!zDown) this.spinCharge = 0;
+
+            if (leftDown) {
+              this.player.setAccelerationX(-1100);
+              this.player.setFlipX(true);
+            } else if (rightDown) {
+              this.player.setAccelerationX(1100);
+              this.player.setFlipX(false);
+            } else this.player.setAccelerationX(0);
+
+            if (upJustDown) {
+              if (onGround) {
+                this.player.setVelocityY(-480);
+                this.hasDoubleJumped = false;
+                playSFX(400, "square", 0.1, 0.08);
+              } else if (
+                !this.hasDoubleJumped &&
+                this.unlockedAbilities.includes("Double Jump")
+              ) {
+                this.player.setVelocityY(-420);
+                this.hasDoubleJumped = true;
+                playSFX(500, "square", 0.1, 0.08);
+              }
+            }
+            if (
+              xJustDown &&
+              !onGround &&
+              this.airDashesLeft > 0 &&
+              this.unlockedAbilities.includes("Air Dash")
+            ) {
+              this.airDashesLeft--;
+              this.player.setVelocityX((this.player.flipX ? -1 : 1) * 650);
+              playSFX(80, "sawtooth", 0.12, 0.15);
+            }
+            if (
+              shiftDown &&
+              this.score >= 50 &&
+              !this.superActive &&
+              this.unlockedAbilities.includes("Super Form")
+            ) {
+              this.superActive = true;
+              this.superTimer = 3000;
+              this.player.setTint(0xffff00);
+              this.player.setMaxVelocity(800, 900);
+              this.score -= 50;
+              this.showNarration("🌟 Super form! Feel the power!");
+              playSFX(800, "square", 0.2, 0.2);
+            }
+            if (this.superActive) {
+              this.superTimer -= delta;
+              if (this.superTimer <= 0) {
+                this.superActive = false;
+                this.player.clearTint();
+                this.player.setMaxVelocity(520, 900);
+              }
+            }
+            // Enemy AI with difficulty speed
+            this.enemies.forEach((en) => {
+              if (!en.sprite.active) return;
+              const speed = 1.5 * (en.speedMult || 1);
+              if (en.type === "drone") {
+                en.sprite.y += Math.sin(time / 500 + en.startX) * speed;
+                en.sprite.x += Math.cos(time / 700 + en.startY) * speed * 0.6;
+              }
+              if (en.type === "crab") {
+                en.sprite.x += en.dir * speed;
+                if (Math.abs(en.sprite.x - en.startX) > 100) en.dir *= -1;
+                en.sprite.setFlipX(en.dir > 0);
+              }
+            });
+            this.movingPlatforms.forEach((mp) => {
+              mp.obj.x += 2 * mp.dir;
+              if (mp.obj.x > mp.startX + 120) mp.dir = -1;
+              if (mp.obj.x < mp.startX - 120) mp.dir = 1;
+            });
+            this.narrationTimer -= delta;
+            if (this.narrationTimer <= 0 && !this.bossActive) {
+              this.narrationTimer = 18000 + Math.random() * 25000;
+              const msg =
+                narrationMessages[
+                  Math.floor(Math.random() * narrationMessages.length)
+                ];
+              this.showNarration(msg);
+            }
+            if (this.player.y > 590) this.respawnAtCheckpoint();
+            this.updateHUD();
+          }
+          collectRing(player, ring) {
+            const value = ring.getData("value") || 1;
+            const color = ring.getData("color") || "gold";
+            this.score += value;
+            this.totalRings += value;
+            // Different sound per color
+            if (color === "gold") playSFX(900, "square", 0.06, 0.05);
+            else if (color === "blue") playSFX(1100, "square", 0.07, 0.06);
+            else if (color === "red") playSFX(700, "square", 0.08, 0.07);
+            else if (color === "rainbow") {
+              playSFX(1200, "square", 0.1, 0.08);
+              playSFX(1500, "square", 0.08, 0.06);
+            }
+            ring.disableBody(true, true);
+          }
+          collectGem(player, gem) {
+            gem.disableBody(true, true);
+            this.score += 5;
+            this.totalRings += 5;
+            playSFX(1300, "square", 0.1, 0.08);
+          }
+          hitSpring(player, spring) {
+            player.setVelocityY(-700);
+            playSFX(300, "square", 0.1, 0.08, 500);
+          }
+          hitSpeedPad(player, pad) {
+            player.setVelocityX(player.flipX ? -750 : 750);
+            playSFX(150, "sawtooth", 0.1, 0.1);
+          }
+          hitSpike() {
+            if (!this.isInvulnerable && !this.superActive) this.takeDamage();
+          }
+          hitEnemy(player, enemySprite) {
+            if (this.superActive) {
+              this.destroyEnemy(enemySprite);
+              return;
+            }
+            if (player.body.velocity.y > 120 && player.y < enemySprite.y - 8) {
+              player.setVelocityY(-350);
+              this.destroyEnemy(enemySprite);
+            } else if (!this.isInvulnerable) this.takeDamage();
+          }
+          destroyEnemy(sprite) {
+            if (!sprite.active) return;
+            for (let i = 0; i < 6; i++) {
+              const p = this.add
+                .image(sprite.x, sprite.y, "particle")
+                .setTint(0xff8800)
+                .setScale(1.5)
+                .setDepth(55);
+              this.tweens.add({
+                targets: p,
+                x: p.x + Phaser.Math.Between(-30, 30),
+                y: p.y + Phaser.Math.Between(-30, 30),
+                alpha: 0,
+                scale: 0,
+                duration: 300,
+                onComplete: () => p.destroy(),
+              });
+            }
+            sprite.destroy();
+            playSFX(200, "square", 0.08, 0.06);
+          }
+          hitLava(player) {
+            if (this.superActive) return;
+            playSFX(40, "sawtooth", 0.6, 0.5);
+            this.cameras.main.shake(350, 0.07);
+            for (let i = 0; i < 20; i++) {
+              const p = this.add
+                .image(player.x, player.y, "particle")
+                .setTint(0xff4400)
+                .setScale(2.5)
+                .setDepth(60);
+              this.tweens.add({
+                targets: p,
+                x: p.x + Phaser.Math.Between(-60, 60),
+                y: p.y - Phaser.Math.Between(30, 80),
+                alpha: 0,
+                scale: 0,
+                duration: 600,
+                onComplete: () => p.destroy(),
+              });
+            }
+            this.showNarration("🔥 Ouch! Lava is super hot! Watch out!");
+            this.player.setTint(0xff0000);
+            this.isInvulnerable = true;
+            this.time.delayedCall(400, () => {
+              this.player.clearTint();
+              this.respawnAtCheckpoint();
+              this.isInvulnerable = false;
+            });
+          }
+          hitCheckpoint(player, cp) {
+            this.checkpointX = cp.x;
+            this.checkpointY = cp.y;
+            cp.setTint(0x00ff00);
+            this.showNarration("💾 Checkpoint saved!");
+            playSFX(600, "square", 0.1, 0.08);
+          }
+          respawnAtCheckpoint() {
+            this.player.setPosition(this.checkpointX, this.checkpointY);
+            this.player.setVelocity(0, 0);
+            this.takeDamage();
+          }
+          takeDamage() {
+            if (this.isInvulnerable || this.superActive) return;
+            playSFX(55, "sawtooth", 0.35, 0.35);
+            this.cameras.main.shake(150, 0.04);
+            // Easy mode: no ring loss
+            if (this.difficulty === "easy" && this.score > 0) {
+              // Don't scatter rings, just lose a small amount
+              this.score = Math.max(0, this.score - 2);
+              this.lives--;
+            } else if (this.score > 0) {
+              const scatterCount = Math.min(this.score, 15);
+              for (let i = 0; i < scatterCount; i++) {
+                const r = this.physics.add.sprite(
+                  this.player.x,
+                  this.player.y,
+                  "ring_gold",
+                );
+                r.setVelocity(
+                  Phaser.Math.Between(-300, 300),
+                  Phaser.Math.Between(-500, -200),
+                );
+                r.setBounce(0.6);
+                r.setCollideWorldBounds(true);
+                r.body.allowGravity = true;
+                r.setDepth(1);
+                r.setData("value", 1);
+                r.setData("color", "gold");
+                this.physics.add.collider(r, this.platforms);
+                this.time.delayedCall(4000, () => {
+                  if (r.active) r.destroy();
+                });
+              }
+              this.score = 0;
+            }
+            this.lives--;
+            if (this.lives <= 0) {
+              this.time.delayedCall(300, () => {
+                stopMusic();
+                this.scene.start("GameOver", {
+                  score: this.totalRings,
+                  playerName: this.playerName,
+                  world: this.currentWorld,
+                });
+              });
+            } else {
+              this.isInvulnerable = true;
+              this.player.setAlpha(0.5);
+              this.time.delayedCall(2000, () => {
+                this.isInvulnerable = false;
+                this.player.setAlpha(1);
+              });
+            }
+            this.updateHUD();
+          }
+          reachGoal() {
+            if (this.bossActive && this.bossHP > 0) return;
+            const level = LEVELS[this.levelIndex];
+            if (level && level.boss && this.bossActive && this.bossHP <= 0) {
+              const w = this.currentWorld;
+              if (!this.rescuedFriends.includes(FRIENDS[w])) {
+                this.rescuedFriends.push(FRIENDS[w]);
+                if (!this.unlockedAbilities.includes(ABILITIES[w]))
+                  this.unlockedAbilities.push(ABILITIES[w]);
+                this.showNarration(
+                  `🎉 You rescued ${FRIENDS[w]}! New ability: ${ABILITIES[w]}!`,
+                );
+              }
+            }
+            this.bossActive = false;
+            const container = document.getElementById("game-container");
+            if (container) container.classList.remove("boss-mode");
+            if (this.bossAttackTimer) this.bossAttackTimer.remove();
+
+            const nextIndex = this.levelIndex + 1;
+            const nextLevel = LEVELS[nextIndex];
+            if (nextLevel) {
+              gameData.levelIndex = nextIndex;
+              gameData.score = this.score;
+              gameData.lives = this.lives;
+              gameData.totalRings = this.totalRings;
+              gameData.unlockedAbilities = this.unlockedAbilities;
+              gameData.rescuedFriends = this.rescuedFriends;
+              gameData.currentWorld = nextLevel.world;
+              gameData.playerName = this.playerName;
+              gameData.playerTexture = this.playerTexture;
+              this.scene.start("ActClear", { ...gameData });
+            } else {
+              stopMusic();
+              this.scene.start("Win", {
+                score: this.totalRings,
+                playerName: this.playerName,
+                friends: this.rescuedFriends.length,
+              });
+            }
+          }
+          startGrind(player, rail) {
+            this.isGrinding = true;
+            this.grindRail = rail;
+            player.body.allowGravity = false;
+            player.setVelocityY(0);
+          }
+        }
+
+        // ═══════════════ ACT CLEAR ═══════════════
+        class ActClear extends Phaser.Scene {
+          constructor() {
+            super("ActClear");
+          }
+          init(data) {
+            this.nextData = data;
+          }
+          create() {
+            const w = this.scale.width;
+            const h = this.scale.height;
+            this.cameras.main.setBackgroundColor("#000022");
+            this.add
+              .text(w / 2, h * 0.2, "🏁 ACT CLEAR!", {
+                fontSize: "clamp(28px,6vw,48px)",
+                fill: "#ffcc00",
+                fontStyle: "bold",
+              })
+              .setOrigin(0.5);
+            this.add
+              .text(w / 2, h * 0.4, `💍 Rings: ${this.nextData.score}`, {
+                fontSize: "clamp(18px,4vw,28px)",
+                fill: "#fff",
+              })
+              .setOrigin(0.5);
+            this.add
+              .text(w / 2, h * 0.5, `❤️ Lives: ${this.nextData.lives}`, {
+                fontSize: "clamp(16px,3.5vw,24px)",
+                fill: "#ff8888",
+              })
+              .setOrigin(0.5);
+            const btn = this.add
+              .text(w / 2, h * 0.68, "[ ▶ NEXT ACT ]", {
+                fontSize: "clamp(18px,4vw,28px)",
+                fill: "#44ff44",
+                backgroundColor: "#224422",
+                padding: { x: 20, y: 10 },
+              })
+              .setOrigin(0.5)
+              .setInteractive();
+            btn.on("pointerdown", () =>
+              this.scene.start("GameScene", this.nextData),
+            );
+          }
+        }
+
+        // ═══════════════ GAME OVER ═══════════════
+        class GameOver extends Phaser.Scene {
+          constructor() {
+            super("GameOver");
+          }
+          init(data) {
+            this.finalScore = data.score;
+            this.playerName = data.playerName;
+            this.world = data.world || 0;
+          }
+          create() {
+            const w = this.scale.width;
+            const h = this.scale.height;
+            this.cameras.main.setBackgroundColor("#110000");
+            this.add
+              .text(w / 2, h * 0.25, "💔 GAME OVER", {
+                fontSize: "clamp(32px,7vw,50px)",
+                fill: "#ff3333",
+                fontStyle: "bold",
+              })
+              .setOrigin(0.5);
+            this.add
+              .text(
+                w / 2,
+                h * 0.42,
+                `${this.playerName} reached ${WORLD_THEMES[Math.min(this.world, 4)].name}`,
+                { fontSize: "clamp(14px,3vw,22px)", fill: "#ccc" },
+              )
+              .setOrigin(0.5);
+            this.add
+              .text(w / 2, h * 0.52, `Total Rings: ${this.finalScore}`, {
+                fontSize: "clamp(14px,3vw,22px)",
+                fill: "#ffcc00",
+              })
+              .setOrigin(0.5);
+            const btn = this.add
+              .text(w / 2, h * 0.68, "[ 🔄 TRY AGAIN ]", {
+                fontSize: "clamp(18px,4vw,28px)",
+                fill: "#ffaa00",
+                backgroundColor: "#332200",
+                padding: { x: 20, y: 10 },
+              })
+              .setOrigin(0.5)
+              .setInteractive();
+            btn.on("pointerdown", () => {
+              stopMusic();
+              this.scene.start("MainMenu");
+            });
+          }
+        }
+
+        // ═══════════════ WIN ═══════════════
+        class WinScene extends Phaser.Scene {
+          constructor() {
+            super("Win");
+          }
+          init(data) {
+            this.score = data.score;
+            this.playerName = data.playerName;
+            this.friends = data.friends || 0;
+          }
+          create() {
+            const w = this.scale.width;
+            const h = this.scale.height;
+            this.cameras.main.setBackgroundColor("#0a0a2a");
+            this.add
+              .text(w / 2, h * 0.08, "🏆 YOU WIN! 🏆", {
+                fontSize: "clamp(30px,7vw,52px)",
+                fill: "#ffcc00",
+                fontStyle: "bold",
+              })
+              .setOrigin(0.5);
+            this.add
+              .text(w / 2, h * 0.22, `Amazing, ${this.playerName}!`, {
+                fontSize: "clamp(18px,4vw,30px)",
+                fill: "#fff",
+              })
+              .setOrigin(0.5);
+            this.add
+              .text(w / 2, h * 0.35, `💎 Total Rings: ${this.score}`, {
+                fontSize: "clamp(16px,3.5vw,26px)",
+                fill: "#ffcc00",
+              })
+              .setOrigin(0.5);
+            this.add
+              .text(w / 2, h * 0.46, `👥 Friends Rescued: ${this.friends}/5`, {
+                fontSize: "clamp(14px,3vw,22px)",
+                fill: "#88ddff",
+              })
+              .setOrigin(0.5);
+            this.add
+              .text(
+                w / 2,
+                h * 0.56,
+                "All worlds conquered! Dr. Mech defeated!",
+                { fontSize: "clamp(12px,2.5vw,18px)", fill: "#ff9966" },
+              )
+              .setOrigin(0.5);
+            const btn = this.add
+              .text(w / 2, h * 0.72, "[ 🎮 PLAY AGAIN ]", {
+                fontSize: "clamp(18px,4vw,28px)",
+                fill: "#00ff00",
+                backgroundColor: "#113311",
+                padding: { x: 20, y: 10 },
+              })
+              .setOrigin(0.5)
+              .setInteractive();
+            btn.on("pointerdown", () => {
+              stopMusic();
+              this.scene.start("MainMenu");
+            });
+          }
+        }
+
+        // ═══════════════ CONFIG ═══════════════
+        const config = {
+          type: Phaser.AUTO,
+          width: 800,
+          height: 600,
+          parent: "game-container",
+          backgroundColor: "#0a0a14",
+          scale: {
+            mode: Phaser.Scale.FIT,
+            autoCenter: Phaser.Scale.CENTER_BOTH,
+            width: 800,
+            height: 600,
+            max: { width: 1200, height: 900 },
+            min: { width: 320, height: 240 },
+          },
+          physics: {
+            default: "arcade",
+            arcade: { gravity: { y: 1300 }, debug: false },
+          },
+          scene: [
+            MainMenu,
+            HowToPlay,
+            Settings,
+            Credits,
+            GameScene,
+            ActClear,
+            GameOver,
+            WinScene,
+          ],
+          pixelArt: true,
+          roundPixels: true,
+          input: { activePointers: 3 },
+        };
+
+        const game = new Phaser.Game(config);
+        window.addEventListener("resize", () => {
+          if (game && game.scale)
+            game.scale.resize(window.innerWidth, window.innerHeight);
+        });
+        document.addEventListener(
+          "touchmove",
+          function (e) {
+            if (e.target.closest("#game-container")) e.preventDefault();
+          },
+          { passive: false },
+        );
+
+        console.log("🦔 NATI & BENIYAS'S SPEEDY ADVENTURE · READY!");
+      })();
+    </script>
+  </body>
+</html>
