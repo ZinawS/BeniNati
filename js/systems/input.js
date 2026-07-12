@@ -63,7 +63,10 @@ export class InputController {
     // angle 0 = arrow points right; rotate for the other three directions.
     const arrowButton = (x, y, angleDeg, key, color) => {
       const backdrop = track(scene.add.circle(x, y, 30, color, 0.2).setStrokeStyle(2, color, 0.75).setScrollFactor(0).setDepth(998).setInteractive({ useHandCursor: true }));
-      const arrow = track(scene.add.triangle(x, y, -12, -13, 15, 0, -12, 13, 0xffffff, 0.95).setAngle(angleDeg).setScrollFactor(0).setDepth(999));
+      // Points must be symmetric around (0,0) — Phaser centers a Triangle
+      // shape on its points' bounding box, so an apex at +12 paired with a
+      // base at -12 (not -12 mirrored to +12) renders visibly off-center.
+      const arrow = track(scene.add.triangle(x, y, -12, -11, 12, 0, -12, 11, 0xffffff, 0.95).setAngle(angleDeg).setScrollFactor(0).setDepth(999));
       const parts = [backdrop, arrow];
       backdrop.on("pointerdown", () => { this.touch[key] = true; pressFeedback(parts, true); backdrop.setFillStyle(color, 0.45); });
       const release = () => { this.touch[key] = false; pressFeedback(parts, false); backdrop.setFillStyle(color, 0.2); };
