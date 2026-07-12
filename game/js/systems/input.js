@@ -21,20 +21,60 @@ export class InputController {
     if (isTouchDevice) this._buildTouchButtons(scene);
   }
 
+  /**
+   * On-screen D-pad (up/down/left/right, drawn as real triangle arrows —
+   * not font glyphs, which render inconsistently across mobile browsers) plus
+   * a separate star-shaped action button, each backed by its own rounded
+   * "window" panel so they read as a real control pad, not floating icons.
+   */
   _buildTouchButtons(scene) {
-    const make = (x, y, label, key, radius = 34) => {
-      const circle = scene.add.circle(x, y, radius, 0xffffff, 0.15).setStrokeStyle(2, 0xffffff, 0.4).setScrollFactor(0).setDepth(999).setInteractive();
-      scene.add.text(x, y, label, { fontSize: "14px", fill: "#fff" }).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
-      circle.on("pointerdown", () => (this.touch[key] = true));
-      circle.on("pointerup", () => (this.touch[key] = false));
-      circle.on("pointerout", () => (this.touch[key] = false));
-      return circle;
+    const DPAD_COLOR = 0x66ccff;
+    const ACTION_COLOR = 0xffee66;
+
+    const panel = (cx, cy, w, h, strokeColor) => {
+      const g = scene.add.graphics().setScrollFactor(0).setDepth(996);
+      g.fillStyle(0x0a0a1a, 0.4);
+      g.fillRoundedRect(cx - w / 2, cy - h / 2, w, h, 16);
+      g.lineStyle(2, strokeColor, 0.5);
+      g.strokeRoundedRect(cx - w / 2, cy - h / 2, w, h, 16);
+      return g;
     };
-    make(50, 520, "◀", "left");
-    make(130, 520, "▶", "right");
-    make(210, 555, "▼", "down", 26);
-    make(700, 540, "●", "jump");
-    make(760, 480, "✕", "action", 26);
+
+    const pressFeedback = (parts, pressed) => {
+      scene.tweens.add({ targets: parts, scale: pressed ? 0.86 : 1, duration: 90, ease: "Sine.easeOut" });
+    };
+
+    // angle 0 = arrow points right; rotate for the other three directions.
+    const arrowButton = (x, y, angleDeg, key, color) => {
+      const r = 30;
+      const backdrop = scene.add.circle(x, y, r, color, 0.18).setStrokeStyle(2, color, 0.7).setScrollFactor(0).setDepth(998).setInteractive({ useHandCursor: true });
+      const arrow = scene.add.triangle(x, y, -12, -13, 15, 0, -12, 13, 0xffffff, 0.95).setAngle(angleDeg).setScrollFactor(0).setDepth(999);
+      const parts = [backdrop, arrow];
+      backdrop.on("pointerdown", () => { this.touch[key] = true; pressFeedback(parts, true); backdrop.setFillStyle(color, 0.4); });
+      const release = () => { this.touch[key] = false; pressFeedback(parts, false); backdrop.setFillStyle(color, 0.18); };
+      backdrop.on("pointerup", release);
+      backdrop.on("pointerout", release);
+      return parts;
+    };
+
+    // ---- Movement D-pad, bottom-left ----
+    const dpadCx = 118, dpadCy = 498, gap = 56;
+    panel(dpadCx, dpadCy, 172, 172, DPAD_COLOR);
+    arrowButton(dpadCx, dpadCy - gap, 270, "jump", DPAD_COLOR); // up = jump
+    arrowButton(dpadCx, dpadCy + gap, 90, "down", DPAD_COLOR); // down = crouch/spin-dash/ground-pound
+    arrowButton(dpadCx - gap, dpadCy, 180, "left", DPAD_COLOR);
+    arrowButton(dpadCx + gap, dpadCy, 0, "right", DPAD_COLOR);
+
+    // ---- Action button, bottom-right, visually distinct from movement ----
+    const actionCx = 706, actionCy = 500;
+    panel(actionCx, actionCy, 110, 110, ACTION_COLOR);
+    const actionBackdrop = scene.add.circle(actionCx, actionCy, 34, ACTION_COLOR, 0.2).setStrokeStyle(2, ACTION_COLOR, 0.8).setScrollFactor(0).setDepth(998).setInteractive({ useHandCursor: true });
+    const actionStar = scene.add.star(actionCx, actionCy, 5, 9, 18, 0xffffff, 0.95).setScrollFactor(0).setDepth(999);
+    const actionParts = [actionBackdrop, actionStar];
+    actionBackdrop.on("pointerdown", () => { this.touch.action = true; pressFeedback(actionParts, true); actionBackdrop.setFillStyle(ACTION_COLOR, 0.45); });
+    const releaseAction = () => { this.touch.action = false; pressFeedback(actionParts, false); actionBackdrop.setFillStyle(ACTION_COLOR, 0.2); };
+    actionBackdrop.on("pointerup", releaseAction);
+    actionBackdrop.on("pointerout", releaseAction);
   }
 
   _padButtonPressed(pad, index) {
