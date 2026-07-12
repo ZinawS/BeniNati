@@ -35,7 +35,9 @@ js/
 │   ├── uiHelpers.js           makeButton() (hover/press feedback + click sound),
 │   │                        addHoverFeedback() (same, for non-text game objects),
 │   │                        sceneTransition()/fadeInScene() (camera fade cuts),
-│   │                        screenAnchors() (layout relative to real screen size).
+│   │                        screenAnchors() (layout relative to real screen size),
+│   │                        autoRelayoutOnResize() (restarts a menu scene if the
+│   │                        real viewport size changes after it's already showing).
 │   ├── orientationGuard.js    Shows a DOM "please rotate" overlay when a touch
 │   │                        device is held in portrait — lives outside the Phaser
 │   │                        canvas entirely, so it works regardless of which scene
@@ -185,19 +187,40 @@ Everything audible is generated at runtime with the Web Audio API in
   `AudioContext` suspended until a genuine user gesture unlocks it. This is the fix
   for "the sound system doesn't reliably work" — it no longer depends on the user
   happening to click a specific button first.
-- **Settings** — `save.settings.sfx` / `save.settings.music` (independent toggles,
-  both default on) gate `SFX.*` and `Music.*` respectively via a small `isEnabled()`
-  check in `audio.js`, editable from the Settings scene.
+- **Settings** — `save.settings.sfxVolume` / `save.settings.musicVolume` (0-1,
+  independently adjustable — a 5-step tappable cycle in the Settings scene, not
+  just on/off) scale `SFX.*` and `Music.*` volume respectively via a small
+  `getVolume()` check in `audio.js`. Older saves that had boolean
+  `settings.sfx`/`settings.music` are migrated forward (true→1, false→0) rather
+  than silently losing the player's preference — see `systems/save.js`'s
+  `migrateSave()`.
 
 ## Responsive design & mobile
 
-`main.js` configures Phaser's Scale Manager (`Phaser.Scale.FIT` + `CENTER_BOTH`)
-instead of relying on CSS alone to resize the canvas — Phaser needs to own the scale
-calculation for pointer/touch coordinates to map back to game-space correctly.
+`main.js` configures Phaser's Scale Manager as `Phaser.Scale.RESIZE`, seeded with
+the *actual* `window.innerWidth`/`innerHeight` rather than a fixed fallback —
+Phaser needs to own the scale calculation for pointer/touch coordinates to map
+back to game-space correctly, and seeding it with the real size (instead of
+letting RESIZE mode's own first auto-correction be the only thing that gets it
+right) closed a real bug where a stale initial measurement on some mobile
+browsers left the canvas rendered wider than the actual screen, pushing every
+right-anchored control off-screen with no way to reach it (see
+`docs/QA_NOTES.md`'s "Known issue history" for the full writeup). `css/main.css`
+also has a hard safety net independent of that fix — `max-width`/`max-height:
+100%` on the canvas — so it can never visually overflow the viewport regardless
+of what Phaser computes internally.
+
 `css/main.css` is mobile-first: the game fills the viewport edge-to-edge on small
 screens, and only above `900×700` does the decorative bordered "floating window"
 look (border, glow, rounded corners) reappear, via a media query — there's no reason
 to eat screen space with a border on a phone.
+
+Menu scenes compute their whole layout once from `screenAnchors()` at `create()`
+time; `autoRelayoutOnResize()` restarts a scene if the real size changes while
+it's already showing (rotation, a mobile browser's address bar collapsing
+mid-visit). `GameScene` doesn't use this — restarting mid-stage would lose
+progress — and instead repositions its own HUD/boss-bar/touch-controls directly
+on the `resize` event.
 
 `ui/orientationGuard.js` is intentionally *not* a Phaser scene — it's a plain DOM
 overlay (`#orientation-guard` in `index.html`) toggled by a `resize`/`orientationchange`

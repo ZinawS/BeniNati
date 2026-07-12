@@ -115,6 +115,49 @@ change, the next things to check, in order:
 3. Whether the device is in Low Power Mode or has a restrictive "Prevent
    Cross-Site Tracking"/content-blocker setup that could affect page scripts.
 
+## Known issue history: mobile display cut off / controls unreachable
+
+Reported: on a real phone, the game appeared shifted toward the left edge,
+with no way to reach the right-anchored controls (up/down, action, pause,
+sound icon). Root cause: `main.js`'s `scale` config used a hardcoded
+`width: 800, height: 600` as the starting size for `Phaser.Scale.RESIZE`
+mode. RESIZE mode is supposed to immediately re-measure its parent and
+correct itself, but on some mobile browsers that first measurement can be
+stale (e.g. mid-layout while the address bar is still collapsing) — leaving
+the canvas rendered at the full 800px-wide fallback well past what a
+~380px-wide phone screen can show. Combined with `overflow: hidden` on
+`<body>`, the overflow wasn't scrollable, just silently clipped — visible on
+the left (where it happened to start), inaccessible on the right (where
+every right-anchored control lives).
+
+Two independent fixes, not just one, since this is exactly the kind of bug
+that's expensive to get wrong twice:
+
+1. **Root cause**: seed the Scale Manager with `window.innerWidth` /
+   `window.innerHeight` (the actual current viewport) instead of the 800x600
+   fallback, so correctness doesn't depend on RESIZE mode's first
+   auto-correction firing before anything is drawn.
+2. **Hard safety net regardless of (1)**: `max-width: 100%; max-height: 100%;`
+   on the canvas in `main.css`. CSS `max-width`/`max-height` constrain the
+   *displayed* size even against an inline pixel width Phaser sets via JS, so
+   even if Phaser's internal size computation is ever wrong again on some
+   other device, the canvas can only ever be visually scaled down to fit —
+   never overflow off-screen. Phaser's pointer-to-game coordinate mapping
+   already accounts for CSS-scaled canvases (it reads the actual rendered
+   `getBoundingClientRect()`), so touch targets stay correctly aligned even
+   when this safety net is the one doing the work.
+
+Also added: menu scenes (which compute their whole layout once, at
+`create()`) now restart themselves on a `resize` event via
+`autoRelayoutOnResize()`, so a rotation or address-bar collapse that happens
+*after* a menu is already showing gets picked up too, not just the initial
+load.
+
+Not verified on a real device — same caveat as everything else in this
+file — but the fix addresses a specific, understood mechanism rather than a
+guess, and the CSS safety net (2) holds regardless of whether the root-cause
+diagnosis in (1) is fully correct.
+
 ## Per-feature browser/platform support (by API, not by testing)
 
 This documents what each feature *depends on*, so you know what's actually at risk

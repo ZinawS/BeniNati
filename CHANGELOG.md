@@ -4,6 +4,35 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is
 [Semantic Versioning](https://semver.org/).
 
+## [1.5.0] — Fixed mobile display cutoff, real volume control
+
+### Fixed
+- **Game content was cut off / shifted left on mobile, controls unreachable.**
+  Root cause: `Phaser.Scale.RESIZE` was seeded with a hardcoded 800x600
+  fallback instead of the real viewport size, and on some mobile browsers
+  RESIZE mode's own first auto-correction can be stale (e.g. mid-layout while
+  the address bar is still collapsing) — leaving the canvas rendered at the
+  800px fallback width on screens far narrower than that, with the overflow
+  silently clipped (not scrollable) by `overflow: hidden`. Visible on the
+  left where it happened to start; every right-anchored control (up/down,
+  action, pause, sound icon) was off-screen with no way to reach it. Fixed
+  two ways: seeded the Scale Manager with the actual `window.innerWidth`/
+  `innerHeight`, and added `max-width`/`max-height: 100%` on the canvas as a
+  hard CSS safety net so it can never visually overflow the viewport again
+  regardless of what Phaser computes internally — see `docs/QA_NOTES.md` for
+  the full writeup.
+- Menu scenes (World Map, Settings, Profile Select, etc.) now restart
+  themselves via a new `autoRelayoutOnResize()` helper if the real screen
+  size changes while they're already showing — previously they only laid
+  out correctly once, at first load.
+
+### Changed
+- Sound Effects and Music each got a real, independently-adjustable volume
+  level (100/75/50/25/0%, tap to cycle, with a level bar) in Settings instead
+  of just an on/off toggle, so both are genuinely controllable together from
+  the same screen rather than being all-or-nothing. Older saves with the
+  previous boolean on/off settings are migrated forward automatically.
+
 ## [1.4.0] — Fixed Hostinger 403, real melodic soundtrack
 
 ### Fixed

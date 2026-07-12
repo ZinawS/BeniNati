@@ -99,7 +99,9 @@ defeated, times respawned) and a small set of achievements, viewable from the
 
 ## Accessibility & options
 
-- **Sound Effects** and **Music** have independent on/off toggles in Settings.
+- **Sound Effects** and **Music** each have an independent, tappable volume
+  control in Settings (100% → 75% → 50% → 25% → off, with a level bar), not
+  just an on/off switch — adjust either one without affecting the other.
   Every world has its own generated melodic theme (arpeggio + bass + light
   percussion, distinct scale and tempo per world) that speeds up and thickens
   for boss fights — see `docs/ARCHITECTURE.md` for how it's built.
