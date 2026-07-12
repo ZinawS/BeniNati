@@ -12,12 +12,18 @@ export class StatsScene extends Phaser.Scene {
     const { cx, width, height } = screenAnchors(this);
     this.add.text(cx, height * 0.08, "STATS & ACHIEVEMENTS", { fontSize: "22px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
 
+    const bestRush = save.stats.bestBossRushSeconds;
+    const bestRushLabel = bestRush !== null && bestRush !== undefined
+      ? `${Math.floor(bestRush / 60)}:${String(bestRush % 60).padStart(2, "0")}`
+      : "not run yet";
+
     const stats = [
       `Rings collected (lifetime): ${save.stats.totalRings}`,
       `Enemies defeated: ${save.stats.enemiesDefeated}`,
       `Bosses defeated: ${save.stats.bossesDefeated}`,
       `Times respawned: ${save.stats.deaths}`,
       `Worlds cleared: ${save.clearedWorlds.filter(Boolean).length} / ${save.clearedWorlds.length}`,
+      `Best Boss Rush time: ${bestRushLabel}`,
     ];
 
     // Side-by-side on wide screens (stats left, achievements right); stacked

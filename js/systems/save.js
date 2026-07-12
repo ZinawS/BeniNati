@@ -55,6 +55,7 @@ export function defaultProfileSave() {
       playtimeSeconds: 0,
       bestRingsPerStage: {},
       achievements: [],
+      bestBossRushSeconds: null,
     },
   };
 }

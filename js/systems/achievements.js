@@ -12,6 +12,7 @@ export const ACHIEVEMENTS = [
   { id: "friend_finder", name: "Friend Finder", description: "Free 5 friends.", condition: (s) => s.stats.bossesDefeated >= 5 },
   { id: "never_give_up", name: "Never Give Up", description: "Respawn 10 times and keep going.", condition: (s) => s.stats.deaths >= 10 },
   { id: "completionist", name: "Completionist", description: "Complete the whole story.", condition: (s) => s.gameCompleted === true },
+  { id: "boss_rush_champion", name: "Boss Rush Champion", description: "Beat every boss back-to-back in Boss Rush mode.", condition: (s) => s.stats.bestBossRushSeconds !== null && s.stats.bestBossRushSeconds !== undefined },
 ];
 
 export function checkAchievements(save) {

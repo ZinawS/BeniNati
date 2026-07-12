@@ -59,15 +59,41 @@ export class WorldMap extends Phaser.Scene {
       this.add.text(cx, infoY + 42, "New Game+ and Nightmare Mode are available in Settings!", { fontSize: "12px", fill: "#aaddff" }).setOrigin(0.5);
     }
 
-    const btnRowY = height - 55;
-    const btnGap = Math.min(140, width / 6);
-    const btnStartX = cx - btnGap * 2;
-    makeButton(this, btnStartX, btnRowY, "[ How To Play ]", () => sceneTransition(this, "HowToPlay", { returnTo: "WorldMap" }), { fontSize: "12px" });
-    makeButton(this, btnStartX + btnGap, btnRowY, "[ Settings ]", () => sceneTransition(this, "Settings"), { fontSize: "12px" });
-    makeButton(this, btnStartX + btnGap * 2, btnRowY, "[ Stats ]", () => sceneTransition(this, "StatsScene"), { fontSize: "12px" });
-    makeButton(this, btnStartX + btnGap * 3, btnRowY, "[ Switch Player ]", () => sceneTransition(this, "ProfileSelect"), { fontSize: "12px" });
+    // Boss Rush joins the main button row (rather than stacking below the
+    // "THE END" text) so it can't collide with anything on a short screen —
+    // the row's own spacing is computed from how many buttons are actually shown.
+    const buttons = [
+      ["[ How To Play ]", () => sceneTransition(this, "HowToPlay", { returnTo: "WorldMap" }), "#ffcc00"],
+      ["[ Settings ]", () => sceneTransition(this, "Settings"), "#ffcc00"],
+      ["[ Stats ]", () => sceneTransition(this, "StatsScene"), "#ffcc00"],
+      ["[ Switch Player ]", () => sceneTransition(this, "ProfileSelect"), "#ffcc00"],
+    ];
+    if (save.gameCompleted) {
+      const bestTime = save.stats.bestBossRushSeconds;
+      const bestLabel = bestTime !== null && bestTime !== undefined
+        ? `[ ★ Boss Rush ${Math.floor(bestTime / 60)}:${String(bestTime % 60).padStart(2, "0")} ]`
+        : "[ ★ Boss Rush ]";
+      buttons.push([bestLabel, () => {
+        sceneTransition(this, "GameScene", {
+          bossRush: true,
+          bossRushIndex: 0,
+          bossRushStartTime: Date.now(),
+          score: 0,
+          playerName: this.playerName,
+          profileTint: this.profileTint,
+        });
+      }, "#ffee66"]);
+    }
 
-    const resetText = makeButton(this, btnStartX + btnGap * 4, btnRowY, "Reset Progress", () => {
+    const totalButtons = buttons.length + 1; // + Reset Progress
+    const btnRowY = height - 55;
+    const btnGap = Math.min(130, width / (totalButtons + 1));
+    const btnStartX = cx - (btnGap * (totalButtons - 1)) / 2;
+    buttons.forEach(([label, onClick, color], i) => {
+      makeButton(this, btnStartX + btnGap * i, btnRowY, label, onClick, { fontSize: "12px", color });
+    });
+
+    const resetText = makeButton(this, btnStartX + btnGap * buttons.length, btnRowY, "Reset Progress", () => {
       if (!this.resetArmed) {
         this.resetArmed = true;
         resetText.setText("Click again to confirm!");
