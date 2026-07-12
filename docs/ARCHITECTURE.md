@@ -166,6 +166,29 @@ is frozen (`body.moves = false`, not just `inputLocked`, so they don't drift dur
 the cut), the camera pans/zooms to the boss and back, then hands control back. This
 is the "cinematic boss intro" — a scripted camera move, not a pre-rendered cutscene.
 
+The health bar (`drawBossBar()`/`updateBossBar()`/`drainBossBarToZero()`) sits on
+its own solid dark panel with a bright border (`bossBarPanel`, depth 1499, just
+below the bar itself at 1500-1501) specifically so it can't visually blend into a
+similarly-dark world background (Volcano, Haunted Forest, the final Fortress all
+have dark skies) — a plain semi-transparent bar risked reading as "hidden." The fill
+tweens (scaleX from a left-anchored origin) rather than snapping on every hit, with
+a white damage flash, so the reduction reads as motion, not a jump-cut.
+
+### Boss Rush mode
+
+`GameScene.init()` accepts `{ bossRush: true, bossRushIndex, bossRushStartTime }`
+instead of `{ worldIndex, stageIndex }` — it forces `stageIndex` to `2` (every
+world's boss stage) and uses `bossRushIndex` as the world index, so it reuses each
+world's *existing* boss arena with no new level data. `bossDefeated()` branches on
+`this.bossRush`: mid-run, it advances to `bossRushIndex + 1` instead of returning to
+`WorldMap`; on the last boss, `bossRushDefeated()` computes elapsed time from
+`bossRushStartTime`, updates `save.stats.bestBossRushSeconds` if it's a new best, and
+shows a completion summary. Rings (`score`) carry over between fights via the same
+scene-data threading normal stage-to-stage transitions already use — Boss Rush is
+one continuous run, not 9 isolated fights with a full ring refill between each.
+Unlocked from `WorldMap` once `save.gameCompleted` is true (same gating as Nightmare
+Mode).
+
 ## Audio system
 
 Everything audible is generated at runtime with the Web Audio API in

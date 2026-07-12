@@ -4,6 +4,23 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is
 [Semantic Versioning](https://semver.org/).
 
+## [1.7.0] — Boss Rush mode, boss bar visibility fix
+
+### Fixed
+- The boss health bar's plain dark-gray fill could blend into similarly dark
+  world backgrounds (Volcano, Haunted Forest, the final Fortress), reading as
+  "hidden." Gave it its own solid backdrop panel with a bright border so it's
+  always clearly visible regardless of what world it's over.
+
+### Added
+- **Boss Rush mode**: fight all 9 bosses back-to-back, in order, rings
+  carrying over between fights instead of refilling. Unlocked from the World
+  Map once the story is complete (same gating as Nightmare Mode). Timed, with
+  your best clear time saved and shown on the World Map and Stats screen, and
+  a new "Boss Rush Champion" achievement for finishing a run. Reuses each
+  world's existing boss arena — no new level content needed, which is why
+  this was the fast option.
+
 ## [1.6.0] — Bundled build (fixes Samsung TV / old-browser loading), touch layout cleanup
 
 ### Fixed

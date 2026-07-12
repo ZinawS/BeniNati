@@ -773,7 +773,8 @@
         bossesDefeated: 0,
         playtimeSeconds: 0,
         bestRingsPerStage: {},
-        achievements: []
+        achievements: [],
+        bestBossRushSeconds: null
       }
     };
   }
@@ -1569,14 +1570,34 @@
         this.add.text(cx, infoY + 22, `You defeated ${VILLAIN} and rescued everyone! THE END.`, { fontSize: "14px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
         this.add.text(cx, infoY + 42, "New Game+ and Nightmare Mode are available in Settings!", { fontSize: "12px", fill: "#aaddff" }).setOrigin(0.5);
       }
+      const buttons = [
+        ["[ How To Play ]", () => sceneTransition(this, "HowToPlay", { returnTo: "WorldMap" }), "#ffcc00"],
+        ["[ Settings ]", () => sceneTransition(this, "Settings"), "#ffcc00"],
+        ["[ Stats ]", () => sceneTransition(this, "StatsScene"), "#ffcc00"],
+        ["[ Switch Player ]", () => sceneTransition(this, "ProfileSelect"), "#ffcc00"]
+      ];
+      if (save.gameCompleted) {
+        const bestTime = save.stats.bestBossRushSeconds;
+        const bestLabel = bestTime !== null && bestTime !== void 0 ? `[ \u2605 Boss Rush ${Math.floor(bestTime / 60)}:${String(bestTime % 60).padStart(2, "0")} ]` : "[ \u2605 Boss Rush ]";
+        buttons.push([bestLabel, () => {
+          sceneTransition(this, "GameScene", {
+            bossRush: true,
+            bossRushIndex: 0,
+            bossRushStartTime: Date.now(),
+            score: 0,
+            playerName: this.playerName,
+            profileTint: this.profileTint
+          });
+        }, "#ffee66"]);
+      }
+      const totalButtons = buttons.length + 1;
       const btnRowY = height - 55;
-      const btnGap = Math.min(140, width / 6);
-      const btnStartX = cx - btnGap * 2;
-      makeButton(this, btnStartX, btnRowY, "[ How To Play ]", () => sceneTransition(this, "HowToPlay", { returnTo: "WorldMap" }), { fontSize: "12px" });
-      makeButton(this, btnStartX + btnGap, btnRowY, "[ Settings ]", () => sceneTransition(this, "Settings"), { fontSize: "12px" });
-      makeButton(this, btnStartX + btnGap * 2, btnRowY, "[ Stats ]", () => sceneTransition(this, "StatsScene"), { fontSize: "12px" });
-      makeButton(this, btnStartX + btnGap * 3, btnRowY, "[ Switch Player ]", () => sceneTransition(this, "ProfileSelect"), { fontSize: "12px" });
-      const resetText = makeButton(this, btnStartX + btnGap * 4, btnRowY, "Reset Progress", () => {
+      const btnGap = Math.min(130, width / (totalButtons + 1));
+      const btnStartX = cx - btnGap * (totalButtons - 1) / 2;
+      buttons.forEach(([label, onClick, color], i) => {
+        makeButton(this, btnStartX + btnGap * i, btnRowY, label, onClick, { fontSize: "12px", color });
+      });
+      const resetText = makeButton(this, btnStartX + btnGap * buttons.length, btnRowY, "Reset Progress", () => {
         if (!this.resetArmed) {
           this.resetArmed = true;
           resetText.setText("Click again to confirm!");
@@ -1602,7 +1623,8 @@
     { id: "boss_slayer", name: "Boss Slayer", description: "Defeat your first boss.", condition: (s) => s.stats.bossesDefeated >= 1 },
     { id: "friend_finder", name: "Friend Finder", description: "Free 5 friends.", condition: (s) => s.stats.bossesDefeated >= 5 },
     { id: "never_give_up", name: "Never Give Up", description: "Respawn 10 times and keep going.", condition: (s) => s.stats.deaths >= 10 },
-    { id: "completionist", name: "Completionist", description: "Complete the whole story.", condition: (s) => s.gameCompleted === true }
+    { id: "completionist", name: "Completionist", description: "Complete the whole story.", condition: (s) => s.gameCompleted === true },
+    { id: "boss_rush_champion", name: "Boss Rush Champion", description: "Beat every boss back-to-back in Boss Rush mode.", condition: (s) => s.stats.bestBossRushSeconds !== null && s.stats.bestBossRushSeconds !== void 0 }
   ];
   function checkAchievements(save) {
     if (!save.stats.achievements) save.stats.achievements = [];
@@ -1628,12 +1650,15 @@
       const save = Save.current();
       const { cx, width, height } = screenAnchors(this);
       this.add.text(cx, height * 0.08, "STATS & ACHIEVEMENTS", { fontSize: "22px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
+      const bestRush = save.stats.bestBossRushSeconds;
+      const bestRushLabel = bestRush !== null && bestRush !== void 0 ? `${Math.floor(bestRush / 60)}:${String(bestRush % 60).padStart(2, "0")}` : "not run yet";
       const stats = [
         `Rings collected (lifetime): ${save.stats.totalRings}`,
         `Enemies defeated: ${save.stats.enemiesDefeated}`,
         `Bosses defeated: ${save.stats.bossesDefeated}`,
         `Times respawned: ${save.stats.deaths}`,
-        `Worlds cleared: ${save.clearedWorlds.filter(Boolean).length} / ${save.clearedWorlds.length}`
+        `Worlds cleared: ${save.clearedWorlds.filter(Boolean).length} / ${save.clearedWorlds.length}`,
+        `Best Boss Rush time: ${bestRushLabel}`
       ];
       const sideBySide = width >= 640;
       const leftX = sideBySide ? 40 : 40;
@@ -1812,8 +1837,10 @@
       super("GameScene");
     }
     init(data) {
-      this.worldIndex = data.worldIndex || 0;
-      this.stageIndex = data.stageIndex || 0;
+      this.bossRush = !!data.bossRush;
+      this.bossRushStartTime = data.bossRushStartTime || null;
+      this.worldIndex = this.bossRush ? data.bossRushIndex || 0 : data.worldIndex || 0;
+      this.stageIndex = this.bossRush ? 2 : data.stageIndex || 0;
       this.score = data.score || 0;
       this.playerName = data.playerName || "Player";
       this.profileTint = data.profileTint || 16777215;
@@ -2084,18 +2111,33 @@
       this.drawBossBar();
       this.showHint(`BOSS: ${this.world.bossName}! Wait for it to flash YELLOW, then jump on it or dash into it!`);
     }
-    /** (Re)creates the bar at the right position/size — used on setup and on resize, where an instant snap is correct (the screen itself just changed). */
+    /**
+     * (Re)creates the bar at the right position/size — used on setup and on
+     * resize, where an instant snap is correct (the screen itself just
+     * changed). Sits on its own solid backdrop panel (not just a transparent
+     * dark rectangle) so it stays clearly visible against any world's
+     * background color — the plain dark-gray bar could blend into similarly
+     * dark skies (Volcano, Haunted Forest, the final Fortress) and read as
+     * "hidden."
+     */
     drawBossBar() {
+      if (this.bossBarPanel) this.bossBarPanel.destroy();
       if (this.bossBarBg) this.bossBarBg.destroy();
       if (this.bossBarFg) this.bossBarFg.destroy();
       if (this.bossNameText) this.bossNameText.destroy();
       const cx = this.scale.width / 2;
       const barWidth = Math.min(300, this.scale.width - 120);
       this.bossBarWidth = barWidth;
+      const panelW = barWidth + 40;
+      this.bossBarPanel = this.add.graphics().setScrollFactor(0).setDepth(1499);
+      this.bossBarPanel.fillStyle(0, 0.7);
+      this.bossBarPanel.fillRoundedRect(cx - panelW / 2, 2, panelW, 46, 10);
+      this.bossBarPanel.lineStyle(2, 16763904, 0.9);
+      this.bossBarPanel.strokeRoundedRect(cx - panelW / 2, 2, panelW, 46, 10);
       this.bossBarBg = this.add.rectangle(cx, 30, barWidth, 18, 3355443).setScrollFactor(0).setDepth(1500).setStrokeStyle(2, 16777215);
       this.bossBarFg = this.add.rectangle(cx - barWidth / 2, 30, barWidth, 14, 16724787).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1501);
       this.bossBarFg.setScale(Math.max(0, this.bossHP / this.bossMaxHP), 1);
-      this.bossNameText = this.add.text(cx, 12, this.world.bossName, { fontSize: "13px", fill: "#fff" }).setOrigin(0.5).setScrollFactor(0).setDepth(1501);
+      this.bossNameText = this.add.text(cx, 12, this.world.bossName, { fontSize: "13px", fill: "#fff", fontStyle: "bold" }).setOrigin(0.5).setScrollFactor(0).setDepth(1501);
     }
     /** Called on every hit — smoothly drains the bar to the new HP fraction instead of snapping, with a brief white damage flash. */
     updateBossBar() {
@@ -2114,14 +2156,14 @@
       this.bossBarFg.setFillStyle(16772608);
       this.tweens.add({ targets: this.bossBarFg, scaleX: 0, duration: 350, ease: "Cubic.easeOut" });
       this.time.delayedCall(700, () => {
-        const targets = [this.bossBarBg, this.bossBarFg, this.bossNameText].filter(Boolean);
+        const targets = [this.bossBarPanel, this.bossBarBg, this.bossBarFg, this.bossNameText].filter(Boolean);
         this.tweens.add({
           targets,
           alpha: 0,
           duration: 500,
           onComplete: () => {
             targets.forEach((t) => t.destroy());
-            this.bossBarBg = this.bossBarFg = this.bossNameText = null;
+            this.bossBarPanel = this.bossBarBg = this.bossBarFg = this.bossNameText = null;
           }
         });
       });
@@ -2220,6 +2262,10 @@
       save.unlockedWorld = Math.max(save.unlockedWorld, this.worldIndex + 1);
       save.gameCompleted = save.clearedWorlds.every(Boolean);
       this.recordStat((stats) => stats.bossesDefeated += 1);
+      if (this.bossRush) {
+        this.bossRushDefeated();
+        return;
+      }
       const isFinal = this.worldIndex === FINAL_WORLD_INDEX;
       const rewardLine = isFinal ? `You saved everyone and stopped ${VILLAIN} for good!` : `New Power Unlocked: ${this.world.rewardLabel}!`;
       this.time.delayedCall(1200, () => {
@@ -2228,6 +2274,55 @@
           this.scale.height / 2 - 40,
           `${this.world.friend} is FREE!
 ${rewardLine}
+
+Click to continue`,
+          { fontSize: "20px", fill: "#ffcc00", align: "center", backgroundColor: "#000000cc", padding: { x: 20, y: 20 } }
+        ).setOrigin(0.5).setScrollFactor(0);
+        this.input.once("pointerdown", () => sceneTransition(this, "WorldMap"));
+      });
+    }
+    bossRushDefeated() {
+      const isLast = this.worldIndex >= WORLDS.length - 1;
+      if (!isLast) {
+        this.time.delayedCall(1200, () => {
+          const msg = this.add.text(
+            this.scale.width / 2,
+            this.scale.height / 2 - 40,
+            `${this.world.bossName} defeated!
+Boss ${this.worldIndex + 1} of ${WORLDS.length} down.`,
+            { fontSize: "18px", fill: "#ffcc00", align: "center", backgroundColor: "#000000cc", padding: { x: 20, y: 20 } }
+          ).setOrigin(0.5).setScrollFactor(0);
+          this.time.delayedCall(1e3, () => {
+            msg.destroy();
+            sceneTransition(this, "GameScene", {
+              bossRush: true,
+              bossRushIndex: this.worldIndex + 1,
+              bossRushStartTime: this.bossRushStartTime,
+              score: this.score,
+              playerName: this.playerName,
+              profileTint: this.profileTint
+            });
+          });
+        });
+        return;
+      }
+      const elapsedSeconds = Math.round((Date.now() - this.bossRushStartTime) / 1e3);
+      const save = Save.current();
+      const prevBest = save.stats.bestBossRushSeconds;
+      const isNewBest = prevBest === null || prevBest === void 0 || elapsedSeconds < prevBest;
+      if (isNewBest) save.stats.bestBossRushSeconds = elapsedSeconds;
+      const unlocked = checkAchievements(save);
+      Save.persist();
+      unlocked.forEach((ach) => this.showAchievementToast(ach));
+      const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+      this.time.delayedCall(1200, () => {
+        const msg = this.add.text(
+          this.scale.width / 2,
+          this.scale.height / 2 - 40,
+          `\u2605 BOSS RUSH COMPLETE! \u2605
+
+Time: ${fmt(elapsedSeconds)}${isNewBest ? "  (NEW BEST!)" : `
+Best: ${fmt(save.stats.bestBossRushSeconds)}`}
 
 Click to continue`,
           { fontSize: "20px", fill: "#ffcc00", align: "center", backgroundColor: "#000000cc", padding: { x: 20, y: 20 } }
@@ -2538,7 +2633,11 @@ Click to continue`,
       });
     }
     updateHUD() {
-      this.scoreText.setText(`${this.playerName} | Rings: ${this.score} | ${this.world.name} - ${this.stageData.type === "boss" ? "BOSS" : "Stage " + (this.stageIndex + 1)}`);
+      if (this.bossRush) {
+        this.scoreText.setText(`${this.playerName} | Rings: ${this.score} | BOSS RUSH ${this.worldIndex + 1}/${WORLDS.length}`);
+      } else {
+        this.scoreText.setText(`${this.playerName} | Rings: ${this.score} | ${this.world.name} - ${this.stageData.type === "boss" ? "BOSS" : "Stage " + (this.stageIndex + 1)}`);
+      }
     }
   };
 

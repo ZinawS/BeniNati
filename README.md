@@ -116,6 +116,15 @@ Every profile tracks lifetime stats (rings collected, enemies defeated, bosses
 defeated, times respawned) and a small set of achievements, viewable from the
 **Stats** button on the world map.
 
+## Boss Rush
+
+Unlocked once you've completed the whole story (same gating as Nightmare Mode):
+fight all 9 bosses back-to-back, in order, with your rings carrying over between
+fights rather than refilling — one long gauntlet, not 9 isolated fights. Timed,
+with your best clear time saved and shown on the World Map and Stats screen. It
+reuses each world's existing boss arena, so it's pure replay value with no new
+level content required.
+
 ## Accessibility & options
 
 - **Sound Effects** and **Music** each have an independent, tappable volume
