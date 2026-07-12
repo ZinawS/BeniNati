@@ -18,24 +18,40 @@ export class InputController {
     this._padPrevAction = false;
 
     this.touch = { left: false, right: false, down: false, jump: false, action: false };
-    if (isTouchDevice) this._buildTouchButtons(scene);
+    this._touchParts = [];
+    if (isTouchDevice) {
+      this._buildTouchButtons(scene);
+      this._resizeHandler = () => this._buildTouchButtons(scene);
+      scene.scale.on("resize", this._resizeHandler);
+      scene.events.once("shutdown", () => scene.scale.off("resize", this._resizeHandler));
+    }
   }
 
   /**
-   * On-screen D-pad (up/down/left/right, drawn as real triangle arrows —
-   * not font glyphs, which render inconsistently across mobile browsers) plus
-   * a separate star-shaped action button, each backed by its own rounded
-   * "window" panel so they read as a real control pad, not floating icons.
+   * On-screen controls, split by thumb the way a real mobile platformer
+   * lays them out: LEFT thumb = forward/backward movement (left/right arrows
+   * side by side), RIGHT thumb = up/down (up doubles as jump) stacked
+   * vertically, plus a separate star-shaped action button above them. Real
+   * drawn triangle arrows (not font glyphs, which render inconsistently
+   * across mobile browsers), each cluster backed by its own rounded "window"
+   * panel so it reads as a real control pad. Rebuilt on every resize/rotate
+   * so it stays correctly anchored to the actual screen edges.
    */
   _buildTouchButtons(scene) {
+    this._touchParts.forEach((o) => o.destroy());
+    this._touchParts = [];
+    const track = (obj) => { this._touchParts.push(obj); return obj; };
+
+    const width = scene.scale.width;
+    const height = scene.scale.height;
     const DPAD_COLOR = 0x66ccff;
     const ACTION_COLOR = 0xffee66;
 
     const panel = (cx, cy, w, h, strokeColor) => {
-      const g = scene.add.graphics().setScrollFactor(0).setDepth(996);
-      g.fillStyle(0x0a0a1a, 0.4);
+      const g = track(scene.add.graphics().setScrollFactor(0).setDepth(996));
+      g.fillStyle(0x0a0a1a, 0.42);
       g.fillRoundedRect(cx - w / 2, cy - h / 2, w, h, 16);
-      g.lineStyle(2, strokeColor, 0.5);
+      g.lineStyle(2, strokeColor, 0.55);
       g.strokeRoundedRect(cx - w / 2, cy - h / 2, w, h, 16);
       return g;
     };
@@ -46,33 +62,39 @@ export class InputController {
 
     // angle 0 = arrow points right; rotate for the other three directions.
     const arrowButton = (x, y, angleDeg, key, color) => {
-      const r = 30;
-      const backdrop = scene.add.circle(x, y, r, color, 0.18).setStrokeStyle(2, color, 0.7).setScrollFactor(0).setDepth(998).setInteractive({ useHandCursor: true });
-      const arrow = scene.add.triangle(x, y, -12, -13, 15, 0, -12, 13, 0xffffff, 0.95).setAngle(angleDeg).setScrollFactor(0).setDepth(999);
+      const backdrop = track(scene.add.circle(x, y, 30, color, 0.2).setStrokeStyle(2, color, 0.75).setScrollFactor(0).setDepth(998).setInteractive({ useHandCursor: true }));
+      const arrow = track(scene.add.triangle(x, y, -12, -13, 15, 0, -12, 13, 0xffffff, 0.95).setAngle(angleDeg).setScrollFactor(0).setDepth(999));
       const parts = [backdrop, arrow];
-      backdrop.on("pointerdown", () => { this.touch[key] = true; pressFeedback(parts, true); backdrop.setFillStyle(color, 0.4); });
-      const release = () => { this.touch[key] = false; pressFeedback(parts, false); backdrop.setFillStyle(color, 0.18); };
+      backdrop.on("pointerdown", () => { this.touch[key] = true; pressFeedback(parts, true); backdrop.setFillStyle(color, 0.45); });
+      const release = () => { this.touch[key] = false; pressFeedback(parts, false); backdrop.setFillStyle(color, 0.2); };
       backdrop.on("pointerup", release);
       backdrop.on("pointerout", release);
       return parts;
     };
 
-    // ---- Movement D-pad, bottom-left ----
-    const dpadCx = 118, dpadCy = 498, gap = 56;
-    panel(dpadCx, dpadCy, 172, 172, DPAD_COLOR);
-    arrowButton(dpadCx, dpadCy - gap, 270, "jump", DPAD_COLOR); // up = jump
-    arrowButton(dpadCx, dpadCy + gap, 90, "down", DPAD_COLOR); // down = crouch/spin-dash/ground-pound
-    arrowButton(dpadCx - gap, dpadCy, 180, "left", DPAD_COLOR);
-    arrowButton(dpadCx + gap, dpadCy, 0, "right", DPAD_COLOR);
+    const bottomY = height - Math.min(90, height * 0.18);
 
-    // ---- Action button, bottom-right, visually distinct from movement ----
-    const actionCx = 706, actionCy = 500;
-    panel(actionCx, actionCy, 110, 110, ACTION_COLOR);
-    const actionBackdrop = scene.add.circle(actionCx, actionCy, 34, ACTION_COLOR, 0.2).setStrokeStyle(2, ACTION_COLOR, 0.8).setScrollFactor(0).setDepth(998).setInteractive({ useHandCursor: true });
-    const actionStar = scene.add.star(actionCx, actionCy, 5, 9, 18, 0xffffff, 0.95).setScrollFactor(0).setDepth(999);
+    // ---- LEFT thumb: forward/backward, anchored to the left edge ----
+    const moveCx = 108;
+    panel(moveCx, bottomY, 190, 96, DPAD_COLOR);
+    arrowButton(moveCx - 48, bottomY, 180, "left", DPAD_COLOR);
+    arrowButton(moveCx + 48, bottomY, 0, "right", DPAD_COLOR);
+
+    // ---- RIGHT thumb: up/down, anchored to the right edge ----
+    const vertCx = width - 108;
+    panel(vertCx, bottomY, 96, 190, DPAD_COLOR);
+    arrowButton(vertCx, bottomY - 48, 270, "jump", DPAD_COLOR); // up = jump
+    arrowButton(vertCx, bottomY + 48, 90, "down", DPAD_COLOR); // down = crouch/spin-dash/ground-pound
+
+    // ---- Action button: its own cluster, above the up/down stack ----
+    const actionCx = vertCx;
+    const actionCy = bottomY - 140;
+    panel(actionCx, actionCy, 96, 96, ACTION_COLOR);
+    const actionBackdrop = track(scene.add.circle(actionCx, actionCy, 32, ACTION_COLOR, 0.22).setStrokeStyle(2, ACTION_COLOR, 0.85).setScrollFactor(0).setDepth(998).setInteractive({ useHandCursor: true }));
+    const actionStar = track(scene.add.star(actionCx, actionCy, 5, 9, 18, 0xffffff, 0.95).setScrollFactor(0).setDepth(999));
     const actionParts = [actionBackdrop, actionStar];
-    actionBackdrop.on("pointerdown", () => { this.touch.action = true; pressFeedback(actionParts, true); actionBackdrop.setFillStyle(ACTION_COLOR, 0.45); });
-    const releaseAction = () => { this.touch.action = false; pressFeedback(actionParts, false); actionBackdrop.setFillStyle(ACTION_COLOR, 0.2); };
+    actionBackdrop.on("pointerdown", () => { this.touch.action = true; pressFeedback(actionParts, true); actionBackdrop.setFillStyle(ACTION_COLOR, 0.5); });
+    const releaseAction = () => { this.touch.action = false; pressFeedback(actionParts, false); actionBackdrop.setFillStyle(ACTION_COLOR, 0.22); };
     actionBackdrop.on("pointerup", releaseAction);
     actionBackdrop.on("pointerout", releaseAction);
   }
