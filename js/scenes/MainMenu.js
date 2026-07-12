@@ -1,6 +1,6 @@
 import { VILLAIN, WORLDS } from "../config/worlds.js";
 import { getAudioCtx, initAudioUnlock } from "../systems/audio.js";
-import { makeButton, sceneTransition, fadeInScene, screenAnchors } from "../ui/uiHelpers.js";
+import { makeButton, sceneTransition, fadeInScene, screenAnchors, autoRelayoutOnResize } from "../ui/uiHelpers.js";
 import { addSoundIndicator } from "../ui/soundIndicator.js";
 import { maybeShowSoundSetup } from "../ui/soundSetupModal.js";
 
@@ -11,6 +11,7 @@ export class MainMenu extends Phaser.Scene {
     initAudioUnlock();
     fadeInScene(this);
     addSoundIndicator(this);
+    autoRelayoutOnResize(this);
 
     const { cx, height } = screenAnchors(this);
 

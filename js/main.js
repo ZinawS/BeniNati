@@ -25,10 +25,20 @@ const config = {
   // on a landscape phone/tablet instead of letterboxing to preserve 800x600's
   // 4:3 aspect ratio. Every scene reads its real size from this.scale.width/
   // height rather than assuming 800x600, so this is safe to fill dynamically.
+  //
+  // Using the *real* current viewport size (not the 800x600 fallback) as the
+  // starting size matters: RESIZE mode is supposed to immediately measure its
+  // parent and correct itself, but on some mobile browsers that first
+  // measurement can be stale (e.g. mid-layout while the address bar is still
+  // collapsing), leaving the game rendered at 800px wide well past what a
+  // ~380px-wide phone screen can show — which pushes the right-anchored
+  // controls (up/down, action, pause, sound icon) off-screen entirely, with
+  // no way to reach them. Seeding it with the actual window size up front
+  // avoids depending on that first auto-correction firing correctly at all.
   scale: {
     mode: Phaser.Scale.RESIZE,
-    width: 800,
-    height: 600,
+    width: window.innerWidth,
+    height: window.innerHeight,
   },
 };
 

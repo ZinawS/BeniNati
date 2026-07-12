@@ -33,8 +33,19 @@ body {
   align-items: center;
 }
 
+/* Hard safety net: no matter what size Phaser's Scale Manager computes
+   internally (mobile browsers can report a stale/incorrect viewport size on
+   first load, before the address bar finishes collapsing), the *displayed*
+   canvas can never exceed the actual viewport. Without this, an oversized
+   canvas gets silently clipped by `overflow: hidden` on <body> above,
+   cutting off whatever fell outside the visible area — which is exactly the
+   right-anchored controls (up/down, action, pause, sound icon). max-width/
+   max-height win over an inline pixel width Phaser sets via JS, so this is a
+   real constraint, not just a suggestion. */
 #game-container canvas {
   display: block;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 /* Toggled on the container by GameScene while a boss fight is active. */

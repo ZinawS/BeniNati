@@ -75,3 +75,24 @@ export function screenAnchors(scene) {
   const height = scene.scale.height;
   return { width, height, cx: width / 2, cy: height / 2, right: width, bottom: height, left: 0, top: 0 };
 }
+
+/**
+ * Menu scenes compute their whole layout once, at create() time, from
+ * screenAnchors() — if the real viewport size changes afterward (device
+ * rotation, a mobile browser's address bar collapsing/expanding mid-visit),
+ * nothing would move to match. Simplest correct fix for a menu screen with
+ * no mid-scene state worth preserving: just restart it, which re-runs
+ * create() against the new size. (GameScene handles this itself instead,
+ * with targeted per-element repositioning, since restarting mid-stage would
+ * lose progress.)
+ */
+export function autoRelayoutOnResize(scene) {
+  let last = { width: scene.scale.width, height: scene.scale.height };
+  const handler = (gameSize) => {
+    if (gameSize.width === last.width && gameSize.height === last.height) return;
+    last = { width: gameSize.width, height: gameSize.height };
+    scene.scene.restart();
+  };
+  scene.scale.on("resize", handler);
+  scene.events.once("shutdown", () => scene.scale.off("resize", handler));
+}

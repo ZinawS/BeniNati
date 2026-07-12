@@ -1,12 +1,13 @@
 import { Save } from "../systems/save.js";
 import { ACHIEVEMENTS } from "../systems/achievements.js";
-import { makeButton, sceneTransition, fadeInScene, screenAnchors } from "../ui/uiHelpers.js";
+import { makeButton, sceneTransition, fadeInScene, screenAnchors, autoRelayoutOnResize } from "../ui/uiHelpers.js";
 
 export class StatsScene extends Phaser.Scene {
   constructor() { super("StatsScene"); }
 
   create() {
     fadeInScene(this);
+    autoRelayoutOnResize(this);
     const save = Save.current();
     const { cx, width, height } = screenAnchors(this);
     this.add.text(cx, height * 0.08, "STATS & ACHIEVEMENTS", { fontSize: "22px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);

@@ -1,4 +1,4 @@
-import { makeButton, sceneTransition, fadeInScene, screenAnchors } from "../ui/uiHelpers.js";
+import { makeButton, sceneTransition, fadeInScene, screenAnchors, autoRelayoutOnResize } from "../ui/uiHelpers.js";
 
 export class HowToPlay extends Phaser.Scene {
   constructor() { super("HowToPlay"); }
@@ -9,6 +9,7 @@ export class HowToPlay extends Phaser.Scene {
 
   create() {
     fadeInScene(this);
+    autoRelayoutOnResize(this);
     const { cx, width, height } = screenAnchors(this);
     this.add.text(cx, height * 0.08, "HOW TO PLAY", { fontSize: "26px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
 

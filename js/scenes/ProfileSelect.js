@@ -1,5 +1,5 @@
 import { Profiles, Save, sanitizeName } from "../systems/save.js";
-import { makeButton, addHoverFeedback, sceneTransition, fadeInScene, screenAnchors } from "../ui/uiHelpers.js";
+import { makeButton, addHoverFeedback, sceneTransition, fadeInScene, screenAnchors, autoRelayoutOnResize } from "../ui/uiHelpers.js";
 
 // Lets any number of players share the same browser, each with their own
 // save (abilities, cleared worlds, stats, achievements). "Nati" and
@@ -9,6 +9,7 @@ export class ProfileSelect extends Phaser.Scene {
 
   create() {
     fadeInScene(this);
+    autoRelayoutOnResize(this);
     Profiles.ensureDefaults();
     const { cx, height } = screenAnchors(this);
     this.add.text(cx, height * 0.09, "Who's Playing?", { fontSize: "30px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);

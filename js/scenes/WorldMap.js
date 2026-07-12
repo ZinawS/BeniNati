@@ -1,7 +1,7 @@
 import { WORLDS, VILLAIN } from "../config/worlds.js";
 import { THEMES } from "../config/themes.js";
 import { Save, Profiles } from "../systems/save.js";
-import { makeButton, addHoverFeedback, sceneTransition, fadeInScene, screenAnchors } from "../ui/uiHelpers.js";
+import { makeButton, addHoverFeedback, sceneTransition, fadeInScene, screenAnchors, autoRelayoutOnResize } from "../ui/uiHelpers.js";
 
 export class WorldMap extends Phaser.Scene {
   constructor() { super("WorldMap"); }
@@ -18,6 +18,7 @@ export class WorldMap extends Phaser.Scene {
 
   create() {
     fadeInScene(this);
+    autoRelayoutOnResize(this);
     const save = Save.current();
     const { cx, width, height } = screenAnchors(this);
     this.add.text(cx, height * 0.05, `${this.playerName}'s Journey`, { fontSize: "20px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
