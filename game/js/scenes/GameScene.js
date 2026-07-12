@@ -1,9 +1,10 @@
 import { TILE, THEMES } from "../config/themes.js";
 import { WORLDS, VILLAIN, FINAL_WORLD_INDEX, ENCOURAGEMENTS } from "../config/worlds.js";
 import { Save } from "../systems/save.js";
-import { SFX, vibrate } from "../systems/audio.js";
+import { SFX, vibrate, Music } from "../systems/audio.js";
 import { InputController } from "../systems/input.js";
 import { checkAchievements } from "../systems/achievements.js";
+import { sceneTransition, fadeInScene } from "../ui/uiHelpers.js";
 
 const HOMING_RADIUS = 280;
 
@@ -38,6 +39,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    fadeInScene(this);
     this.cameras.main.setBackgroundColor(this.theme.sky);
 
     this.platforms = this.physics.add.staticGroup();
@@ -115,9 +117,14 @@ export class GameScene extends Phaser.Scene {
       this.shieldGfx = this.add.circle(this.player.x, this.player.y, 26, 0x66ccff, 0.25).setStrokeStyle(2, 0x66ccff);
     }
 
+    Music.playTheme(this.world.theme);
+
     if (this.stageData.type === "boss") this.setupBoss();
 
-    if (this.stageIndex === 0) this.showHint(this.world.hint);
+    if (this.stageIndex === 0) {
+      this.showWorldTitleCard();
+      this.time.delayedCall(2600, () => this.showHint(this.world.hint));
+    }
 
     this.spawnAmbient();
 
@@ -127,6 +134,18 @@ export class GameScene extends Phaser.Scene {
     this.events.once("shutdown", () => {
       const container = document.getElementById("game-container");
       if (container) container.classList.remove("boss-mode");
+      Music.stop(0.5);
+    });
+  }
+
+  showWorldTitleCard() {
+    const dim = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.45).setScrollFactor(0).setDepth(500);
+    const label = this.add.text(400, 270, `W O R L D   ${this.worldIndex + 1}`, { fontSize: "16px", fill: "#aaddff" }).setOrigin(0.5).setScrollFactor(0).setDepth(501).setAlpha(0);
+    const name = this.add.text(400, 310, this.world.name, { fontSize: "40px", fill: "#ffcc00", fontStyle: "bold", stroke: "#000", strokeThickness: 6 }).setOrigin(0.5).setScrollFactor(0).setDepth(501).setAlpha(0).setScale(0.85);
+    this.tweens.add({ targets: [label, name], alpha: 1, duration: 400, ease: "Sine.easeOut" });
+    this.tweens.add({ targets: name, scale: 1, duration: 500, ease: "Back.easeOut" });
+    this.time.delayedCall(1700, () => {
+      this.tweens.add({ targets: [dim, label, name], alpha: 0, duration: 500, onComplete: () => { dim.destroy(); label.destroy(); name.destroy(); } });
     });
   }
 
@@ -223,6 +242,24 @@ export class GameScene extends Phaser.Scene {
     this.projectiles = this.physics.add.group({ allowGravity: true });
     this.physics.add.overlap(this.player, this.boss, this.hitBoss, null, this);
     this.physics.add.overlap(this.player, this.projectiles, () => this.scatterOrDie(), null, this);
+
+    Music.setBossIntensity(true);
+    this.inputLocked = true;
+    this.player.setVelocity(0, 0);
+    this.player.body.moves = false;
+    this.cameras.main.stopFollow();
+    this.cameras.main.pan(bossX, bossY, 500, "Sine.easeInOut");
+    this.cameras.main.zoomTo(1.5, 500, "Sine.easeInOut");
+    this.time.delayedCall(900, () => {
+      this.cameras.main.pan(this.player.x, this.player.y, 500, "Sine.easeInOut");
+      this.cameras.main.zoomTo(1, 500, "Sine.easeInOut");
+      this.time.delayedCall(500, () => {
+        this.cameras.main.startFollow(this.player);
+        this.player.body.moves = true;
+        this.inputLocked = false;
+      });
+    });
+
     this.bossAttackTimer = this.time.addEvent({ delay: this.nightmare ? 1800 : 2500, callback: () => this.bossAttack(), loop: true });
     this.drawBossBar();
     this.showHint(`BOSS: ${this.world.bossName}! Wait for it to flash YELLOW, then jump on it or dash into it!`);
@@ -309,6 +346,7 @@ export class GameScene extends Phaser.Scene {
     this.boss.body.enable = false;
     SFX.bossDefeat();
     vibrate(500, 0.7, 1);
+    Music.setBossIntensity(false);
     const container = document.getElementById("game-container");
     if (container) container.classList.remove("boss-mode");
     if (this.superParticles) this.superParticles.destroy();
@@ -333,7 +371,7 @@ export class GameScene extends Phaser.Scene {
         `${this.world.friend} is FREE!\n${rewardLine}\n\nClick to continue`,
         { fontSize: "20px", fill: "#ffcc00", align: "center", backgroundColor: "#000000cc", padding: { x: 20, y: 20 } }
       ).setOrigin(0.5).setScrollFactor(0);
-      this.input.once("pointerdown", () => this.scene.start("WorldMap"));
+      this.input.once("pointerdown", () => sceneTransition(this, "WorldMap"));
     });
   }
 
@@ -393,11 +431,13 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
+    const enemyList = this.enemies.getChildren();
+
     if (input.actionJustPressed && !onGround && !this.inputLocked) {
       let target = null;
       if (save.abilities.homingAttack) {
         let best = HOMING_RADIUS;
-        const candidates = [...this.enemies.getChildren()];
+        const candidates = [...enemyList];
         if (this.boss && this.boss.active) candidates.push(this.boss);
         candidates.forEach((c) => {
           const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, c.x, c.y);
@@ -430,7 +470,7 @@ export class GameScene extends Phaser.Scene {
       if (vp.obj.y < vp.baseY - 90) vp.dir = 1;
     });
 
-    this.enemies.getChildren().forEach((e) => {
+    enemyList.forEach((e) => {
       e.x += e.speed * e.dir;
       if (e.x > e.startX + 90) e.dir = -1;
       if (e.x < e.startX - 90) e.dir = 1;
@@ -612,7 +652,7 @@ export class GameScene extends Phaser.Scene {
     SFX.goal();
     this.time.delayedCall(300, () => {
       const nextStage = this.stageIndex + 1;
-      this.scene.start("GameScene", { worldIndex: this.worldIndex, stageIndex: nextStage, score: this.score, playerName: this.playerName, profileTint: this.profileTint });
+      sceneTransition(this, "GameScene", { worldIndex: this.worldIndex, stageIndex: nextStage, score: this.score, playerName: this.playerName, profileTint: this.profileTint });
     });
   }
 
