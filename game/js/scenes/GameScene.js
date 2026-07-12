@@ -4,7 +4,7 @@ import { Save } from "../systems/save.js";
 import { SFX, vibrate, Music } from "../systems/audio.js";
 import { InputController } from "../systems/input.js";
 import { checkAchievements } from "../systems/achievements.js";
-import { sceneTransition, fadeInScene } from "../ui/uiHelpers.js";
+import { sceneTransition, fadeInScene, makeButton } from "../ui/uiHelpers.js";
 import { addSoundIndicator } from "../ui/soundIndicator.js";
 
 const HOMING_RADIUS = 280;
@@ -111,7 +111,17 @@ export class GameScene extends Phaser.Scene {
     this.scoreText = this.add.text(16, 16, "", { fontSize: "18px", fill: "#fff", fontStyle: "bold", backgroundColor: "#000" }).setScrollFactor(0);
     this.scoreText.setPadding(10, 10, 10, 10);
     this.updateHUD();
-    addSoundIndicator(this, 764, 56);
+    this.soundIcon = addSoundIndicator(this, this.scale.width - 36, 56);
+    this.pauseIcon = this.add.text(this.scale.width - 36, 24, "⏸", { fontSize: "20px", fill: "#fff", backgroundColor: "#00000066", padding: { x: 6, y: 2 } })
+      .setOrigin(0.5).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+    this.pauseIcon.on("pointerdown", () => this.togglePause());
+
+    this._resizeHandler = (gameSize) => {
+      if (this.soundIcon) this.soundIcon.setPosition(gameSize.width - 36, 56);
+      if (this.pauseIcon) this.pauseIcon.setPosition(gameSize.width - 36, 24);
+      if (this.bossBarBg) this.drawBossBar();
+    };
+    this.scale.on("resize", this._resizeHandler);
 
     const save = Save.current();
     if (save.abilities.shield) {
@@ -137,13 +147,15 @@ export class GameScene extends Phaser.Scene {
       const container = document.getElementById("game-container");
       if (container) container.classList.remove("boss-mode");
       Music.stop(0.5);
+      this.scale.off("resize", this._resizeHandler);
     });
   }
 
   showWorldTitleCard() {
-    const dim = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.45).setScrollFactor(0).setDepth(500);
-    const label = this.add.text(400, 270, `W O R L D   ${this.worldIndex + 1}`, { fontSize: "16px", fill: "#aaddff" }).setOrigin(0.5).setScrollFactor(0).setDepth(501).setAlpha(0);
-    const name = this.add.text(400, 310, this.world.name, { fontSize: "40px", fill: "#ffcc00", fontStyle: "bold", stroke: "#000", strokeThickness: 6 }).setOrigin(0.5).setScrollFactor(0).setDepth(501).setAlpha(0).setScale(0.85);
+    const cx = this.scale.width / 2, cy = this.scale.height / 2;
+    const dim = this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.45).setScrollFactor(0).setDepth(500);
+    const label = this.add.text(cx, cy - 30, `W O R L D   ${this.worldIndex + 1}`, { fontSize: "16px", fill: "#aaddff" }).setOrigin(0.5).setScrollFactor(0).setDepth(501).setAlpha(0);
+    const name = this.add.text(cx, cy + 10, this.world.name, { fontSize: "40px", fill: "#ffcc00", fontStyle: "bold", stroke: "#000", strokeThickness: 6 }).setOrigin(0.5).setScrollFactor(0).setDepth(501).setAlpha(0).setScale(0.85);
     this.tweens.add({ targets: [label, name], alpha: 1, duration: 400, ease: "Sine.easeOut" });
     this.tweens.add({ targets: name, scale: 1, duration: 500, ease: "Back.easeOut" });
     this.time.delayedCall(1700, () => {
@@ -154,14 +166,15 @@ export class GameScene extends Phaser.Scene {
   spawnAmbient() {
     const type = this.theme.ambient;
     if (!type) return;
+    const w = this.scale.width, h = this.scale.height;
     const particles = this.add.particles("particle");
     let cfg;
-    if (type === "snow") cfg = { x: { min: 0, max: 800 }, y: -10, lifespan: 6000, speedY: { min: 20, max: 50 }, speedX: { min: -10, max: 10 }, tint: 0xffffff, quantity: 1, frequency: 150 };
-    else if (type === "bubbles") cfg = { x: { min: 0, max: 800 }, y: 610, lifespan: 5000, speedY: { min: -60, max: -20 }, speedX: { min: -5, max: 5 }, tint: 0x99ddff, alpha: { start: 0.6, end: 0 }, quantity: 1, frequency: 300 };
-    else if (type === "embers") cfg = { x: { min: 0, max: 800 }, y: 610, lifespan: 4000, speedY: { min: -80, max: -30 }, speedX: { min: -15, max: 15 }, tint: 0xff6600, scale: { start: 0.5, end: 0.1 }, quantity: 1, frequency: 200 };
-    else if (type === "dust") cfg = { x: { min: 0, max: 800 }, y: { min: 0, max: 600 }, lifespan: 4000, speedY: { min: -10, max: 10 }, speedX: { min: -10, max: 10 }, tint: 0xbb88ff, alpha: { start: 0.5, end: 0 }, quantity: 1, frequency: 250 };
-    else if (type === "sparks") cfg = { x: { min: 0, max: 800 }, y: { min: 0, max: 600 }, lifespan: 1200, speedY: { min: -40, max: 40 }, speedX: { min: -40, max: 40 }, tint: [0x00ffff, 0xff00ff], quantity: 1, frequency: 180 };
-    else if (type === "leaves") cfg = { x: { min: 0, max: 800 }, y: -10, lifespan: 7000, speedY: { min: 15, max: 35 }, speedX: { min: -20, max: 20 }, tint: 0x66aa33, scale: { start: 0.5, end: 0.5 }, quantity: 1, frequency: 400 };
+    if (type === "snow") cfg = { x: { min: 0, max: w }, y: -10, lifespan: 6000, speedY: { min: 20, max: 50 }, speedX: { min: -10, max: 10 }, tint: 0xffffff, quantity: 1, frequency: 150 };
+    else if (type === "bubbles") cfg = { x: { min: 0, max: w }, y: h + 10, lifespan: 5000, speedY: { min: -60, max: -20 }, speedX: { min: -5, max: 5 }, tint: 0x99ddff, alpha: { start: 0.6, end: 0 }, quantity: 1, frequency: 300 };
+    else if (type === "embers") cfg = { x: { min: 0, max: w }, y: h + 10, lifespan: 4000, speedY: { min: -80, max: -30 }, speedX: { min: -15, max: 15 }, tint: 0xff6600, scale: { start: 0.5, end: 0.1 }, quantity: 1, frequency: 200 };
+    else if (type === "dust") cfg = { x: { min: 0, max: w }, y: { min: 0, max: h }, lifespan: 4000, speedY: { min: -10, max: 10 }, speedX: { min: -10, max: 10 }, tint: 0xbb88ff, alpha: { start: 0.5, end: 0 }, quantity: 1, frequency: 250 };
+    else if (type === "sparks") cfg = { x: { min: 0, max: w }, y: { min: 0, max: h }, lifespan: 1200, speedY: { min: -40, max: 40 }, speedX: { min: -40, max: 40 }, tint: [0x00ffff, 0xff00ff], quantity: 1, frequency: 180 };
+    else if (type === "leaves") cfg = { x: { min: 0, max: w }, y: -10, lifespan: 7000, speedY: { min: 15, max: 35 }, speedX: { min: -20, max: 20 }, tint: 0x66aa33, scale: { start: 0.5, end: 0.5 }, quantity: 1, frequency: 400 };
     else return;
     particles.createEmitter(cfg);
     particles.setScrollFactor(0);
@@ -209,7 +222,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   showHint(text) {
-    const t = this.add.text(400, 60, text, { fontSize: "15px", fill: "#fff", backgroundColor: "#000000aa", padding: { x: 10, y: 6 }, align: "center", wordWrap: { width: 600 } }).setOrigin(0.5).setScrollFactor(0);
+    const cx = this.scale.width / 2;
+    const t = this.add.text(cx, 60, text, { fontSize: "15px", fill: "#fff", backgroundColor: "#000000aa", padding: { x: 10, y: 6 }, align: "center", wordWrap: { width: Math.min(600, this.scale.width - 40) } }).setOrigin(0.5).setScrollFactor(0);
     this.time.delayedCall(4500, () => this.tweens.add({ targets: t, alpha: 0, duration: 800, onComplete: () => t.destroy() }));
   }
 
@@ -217,11 +231,30 @@ export class GameScene extends Phaser.Scene {
     this.paused = !this.paused;
     if (this.paused) {
       this.physics.world.pause();
-      this.pauseText = this.add.text(400, 300, "PAUSED\n(ESC to resume)", { fontSize: "28px", fill: "#fff", align: "center", backgroundColor: "#000000aa", padding: { x: 20, y: 20 } }).setOrigin(0.5).setScrollFactor(0);
+      this.pauseElements = this.buildPauseMenu();
     } else {
       this.physics.world.resume();
-      if (this.pauseText) this.pauseText.destroy();
+      if (this.pauseElements) this.pauseElements.forEach((el) => el.destroy());
+      this.pauseElements = null;
     }
+  }
+
+  /** Real tappable buttons, not just "press ESC" text — pausing/quitting has to work with no keyboard (mobile). */
+  buildPauseMenu() {
+    const cx = this.scale.width / 2, cy = this.scale.height / 2;
+    const els = [];
+    const add = (obj) => { els.push(obj); return obj; };
+
+    add(this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.6).setScrollFactor(0).setDepth(1900).setInteractive());
+    add(this.add.text(cx, cy - 70, "PAUSED", { fontSize: "30px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5).setScrollFactor(0).setDepth(1901));
+
+    add(makeButton(this, cx, cy - 10, "[ ▶ Resume ]", () => this.togglePause(), { fontSize: "22px", color: "#00ff00" }).setDepth(1901));
+    add(makeButton(this, cx, cy + 50, "[ Quit to World Map ]", () => {
+      this.physics.world.resume();
+      sceneTransition(this, "WorldMap");
+    }, { fontSize: "16px", color: "#ff6666" }).setDepth(1901));
+
+    return els;
   }
 
   setupBoss() {
@@ -271,10 +304,12 @@ export class GameScene extends Phaser.Scene {
     if (this.bossBarBg) this.bossBarBg.destroy();
     if (this.bossBarFg) this.bossBarFg.destroy();
     if (this.bossNameText) this.bossNameText.destroy();
-    this.bossBarBg = this.add.rectangle(400, 30, 300, 18, 0x333333).setScrollFactor(0).setStrokeStyle(2, 0xffffff);
+    const cx = this.scale.width / 2;
+    const barWidth = Math.min(300, this.scale.width - 120);
+    this.bossBarBg = this.add.rectangle(cx, 30, barWidth, 18, 0x333333).setScrollFactor(0).setStrokeStyle(2, 0xffffff);
     const pct = Math.max(0, this.bossHP / this.bossMaxHP);
-    this.bossBarFg = this.add.rectangle(400 - 150 + (300 * pct) / 2, 30, 300 * pct, 14, 0xff3333).setScrollFactor(0);
-    this.bossNameText = this.add.text(400, 12, this.world.bossName, { fontSize: "13px", fill: "#fff" }).setOrigin(0.5).setScrollFactor(0);
+    this.bossBarFg = this.add.rectangle(cx - barWidth / 2 + (barWidth * pct) / 2, 30, barWidth * pct, 14, 0xff3333).setScrollFactor(0);
+    this.bossNameText = this.add.text(cx, 12, this.world.bossName, { fontSize: "13px", fill: "#fff" }).setOrigin(0.5).setScrollFactor(0);
   }
 
   bossAttack() {
@@ -324,7 +359,7 @@ export class GameScene extends Phaser.Scene {
     this.bossAttackTimer.paused = true;
     SFX.transform();
     vibrate(600, 0.6, 1);
-    const t = this.add.text(400, 220,
+    const t = this.add.text(this.scale.width / 2, this.scale.height / 2 - 40,
       `${this.world.friend} and your friends are cheering you on!\n\n★ SUPER TRANSFORMATION! ★`,
       { fontSize: "22px", fill: "#ffee00", align: "center", backgroundColor: "#000000cc", padding: { x: 20, y: 20 } }
     ).setOrigin(0.5).setScrollFactor(0);
@@ -369,7 +404,7 @@ export class GameScene extends Phaser.Scene {
     const rewardLine = isFinal ? `You saved everyone and stopped ${VILLAIN} for good!` : `New Power Unlocked: ${this.world.rewardLabel}!`;
 
     this.time.delayedCall(1200, () => {
-      const msg = this.add.text(400, 260,
+      const msg = this.add.text(this.scale.width / 2, this.scale.height / 2 - 40,
         `${this.world.friend} is FREE!\n${rewardLine}\n\nClick to continue`,
         { fontSize: "20px", fill: "#ffcc00", align: "center", backgroundColor: "#000000cc", padding: { x: 20, y: 20 } }
       ).setOrigin(0.5).setScrollFactor(0);
@@ -526,7 +561,7 @@ export class GameScene extends Phaser.Scene {
 
   showAchievementToast(ach) {
     SFX.achievement();
-    const t = this.add.text(400, 110, `🏆 Achievement Unlocked: ${ach.name}`, { fontSize: "15px", fill: "#ffee00", backgroundColor: "#000000cc", padding: { x: 12, y: 8 } }).setOrigin(0.5).setScrollFactor(0).setAlpha(0);
+    const t = this.add.text(this.scale.width / 2, 110, `🏆 Achievement Unlocked: ${ach.name}`, { fontSize: "15px", fill: "#ffee00", backgroundColor: "#000000cc", padding: { x: 12, y: 8 } }).setOrigin(0.5).setScrollFactor(0).setAlpha(0);
     this.tweens.add({ targets: t, alpha: 1, duration: 300, hold: 2200, yoyo: true, onComplete: () => t.destroy() });
   }
 
@@ -662,7 +697,7 @@ export class GameScene extends Phaser.Scene {
   maybeShowEncouragement() {
     if (!Save.current().settings.encouragement) return;
     const msg = Phaser.Utils.Array.GetRandom(ENCOURAGEMENTS);
-    const t = this.add.text(400, 80, msg, { fontSize: "14px", fill: "#aaddff", backgroundColor: "#00000099", padding: { x: 10, y: 6 } }).setOrigin(0.5).setScrollFactor(0).setAlpha(0);
+    const t = this.add.text(this.scale.width / 2, 80, msg, { fontSize: "14px", fill: "#aaddff", backgroundColor: "#00000099", padding: { x: 10, y: 6 } }).setOrigin(0.5).setScrollFactor(0).setAlpha(0);
     this.tweens.add({ targets: t, alpha: 1, duration: 300, hold: 2000, yoyo: true, onComplete: () => t.destroy() });
   }
 
