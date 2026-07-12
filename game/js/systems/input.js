@@ -2,7 +2,7 @@
 // GameScene reads once per frame, so gameplay code never checks input
 // sources individually. Standard gamepad mapping: dpad = buttons 12-15,
 // left stick = axis 0/1, jump = button 0 (A/Cross), action = button 1/2.
-const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+import { isTouchDevice } from "./platform.js";
 
 export class InputController {
   constructor(scene) {
