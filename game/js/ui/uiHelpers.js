@@ -62,3 +62,16 @@ export function sceneTransition(scene, key, data) {
 export function fadeInScene(scene) {
   scene.cameras.main.fadeIn(260, 0, 0, 0);
 }
+
+/**
+ * The game runs in Phaser's RESIZE scale mode (fills the real viewport
+ * instead of letterboxing a fixed 800x600), so screens are never a fixed
+ * size — a wide landscape phone is much wider than 800, a short one is
+ * shorter than 600. Scenes use this instead of hardcoded numbers so content
+ * stays centered/edge-anchored on any device.
+ */
+export function screenAnchors(scene) {
+  const width = scene.scale.width;
+  const height = scene.scale.height;
+  return { width, height, cx: width / 2, cy: height / 2, right: width, bottom: height, left: 0, top: 0 };
+}

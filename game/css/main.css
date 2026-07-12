@@ -21,9 +21,9 @@ body {
   touch-action: none;
 }
 
-/* Mobile-first: fill the viewport edge-to-edge. Phaser's Scale Manager (FIT +
-   CENTER_BOTH) sizes and centers the canvas inside this box on its own — this
-   just needs to give it the full space to work with. */
+/* Mobile-first: fill the viewport edge-to-edge. Phaser's Scale Manager (RESIZE
+   mode) resizes the canvas to exactly match this box on its own, including on
+   rotate/resize — this just needs to give it the full space to work with. */
 #game-wrapper,
 #game-container {
   width: 100vw;
@@ -67,33 +67,50 @@ body {
   }
 }
 
-/* Shown by orientationGuard.js when a touch device is held in portrait. */
+/* Shown by orientationGuard.js when a touch device is held in portrait.
+   Styled as a modal: dimmed backdrop behind a bordered card, matching the
+   in-game modal (soundSetupModal.js) visual language. */
 #orientation-guard {
   display: none;
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: #0a0a14;
+  background: rgba(5, 5, 15, 0.88);
   color: #fff;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
-  text-align: center;
   padding: 24px;
   font-family: "Segoe UI", "Arial", sans-serif;
 }
 #orientation-guard.visible {
   display: flex;
 }
+#orientation-guard .card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: #101025;
+  border: 2px solid #66ccff;
+  border-radius: 18px;
+  padding: 32px 28px;
+  max-width: 320px;
+  box-shadow: 0 0 40px rgba(100, 180, 255, 0.35);
+}
 #orientation-guard .icon {
   font-size: 48px;
   margin-bottom: 16px;
   animation: rotate-hint 1.6s ease-in-out infinite;
 }
+#orientation-guard h2 {
+  font-size: 17px;
+  color: #ffcc00;
+  margin-bottom: 10px;
+}
 #orientation-guard p {
-  font-size: 16px;
+  font-size: 14px;
   color: #aaddff;
-  max-width: 320px;
+  line-height: 1.4;
 }
 @keyframes rotate-hint {
   0%, 100% { transform: rotate(0deg); }
