@@ -4,6 +4,46 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is
 [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] — True edge-to-edge landscape fill, split thumb controls, sound modal
+
+### Changed
+- Switched Phaser's Scale Manager from `FIT` (letterboxed, preserves 800x600's
+  4:3 aspect ratio with black bars on most phone aspect ratios) to `RESIZE`
+  (fills the actual viewport exactly). Every scene now computes its layout
+  from `this.scale.width`/`height` via a new `screenAnchors()` helper instead
+  of assuming a fixed 800x600 canvas, so menus stay centered and gameplay HUD
+  (score, boss bar, hints, sound icon) stays correctly anchored to the real
+  screen edges on any device — narrow phone or wide tablet.
+- Touch controls reorganized by thumb instead of a single D-pad cluster:
+  **left thumb** = forward/backward (left/right arrows) anchored to the left
+  edge, **right thumb** = up/down (up doubles as jump) anchored to the right
+  edge, with the action (homing attack / air dash) star button in its own
+  cluster above. Rebuilds automatically on resize/rotate.
+- The world-select and stats screens now use extra horizontal space instead
+  of wasting it: more world tiles per row on wide screens, stats/achievements
+  laid out side-by-side instead of one long scrolling column.
+
+### Fixed
+- **Multi-touch was silently broken.** Phaser only tracks a single touch
+  point unless configured otherwise, which is fatal for a two-thumb control
+  scheme — holding a movement direction with one thumb while tapping
+  jump/action with the other simply wouldn't register the second touch.
+  Set `input.activePointers: 3` in the game config.
+- **No way to pause on mobile at all.** Pause was wired to the keyboard ESC
+  key only, which doesn't exist on a touchscreen. Added a tappable ⏸ icon in
+  the HUD, and the pause screen itself is now real buttons (Resume, Quit to
+  World Map) instead of static "(ESC to resume)" text.
+
+### Added
+- A blocking "Sound Settings" modal shown once (per browser) on first launch
+  on touch devices — lets players explicitly turn sound on/off before
+  playing, and the tap to dismiss it doubles as a direct, synchronous
+  AudioContext-unlock gesture (a third, even more reliable layer on top of
+  the previous two audio-unlock fixes). Reachable again any time from
+  Settings → "Sound Setup".
+- The portrait-orientation overlay is now a proper modal card (bordered,
+  dimmed backdrop) instead of plain full-bleed text.
+
 ## [1.2.0] — Real touch controls, guaranteed audio unlock fallback, more juice
 
 ### Fixed
