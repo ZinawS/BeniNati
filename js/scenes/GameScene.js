@@ -13,8 +13,13 @@ export class GameScene extends Phaser.Scene {
   constructor() { super("GameScene"); }
 
   init(data) {
-    this.worldIndex = data.worldIndex || 0;
-    this.stageIndex = data.stageIndex || 0;
+    // Boss Rush reuses each world's existing boss stage back-to-back — no
+    // new level data needed. Always lands on that world's boss map (index 2)
+    // regardless of what stageIndex was passed.
+    this.bossRush = !!data.bossRush;
+    this.bossRushStartTime = data.bossRushStartTime || null;
+    this.worldIndex = this.bossRush ? data.bossRushIndex || 0 : data.worldIndex || 0;
+    this.stageIndex = this.bossRush ? 2 : data.stageIndex || 0;
     this.score = data.score || 0;
     this.playerName = data.playerName || "Player";
     this.profileTint = data.profileTint || 0xffffff;
@@ -300,21 +305,38 @@ export class GameScene extends Phaser.Scene {
     this.showHint(`BOSS: ${this.world.bossName}! Wait for it to flash YELLOW, then jump on it or dash into it!`);
   }
 
-  /** (Re)creates the bar at the right position/size — used on setup and on resize, where an instant snap is correct (the screen itself just changed). */
+  /**
+   * (Re)creates the bar at the right position/size — used on setup and on
+   * resize, where an instant snap is correct (the screen itself just
+   * changed). Sits on its own solid backdrop panel (not just a transparent
+   * dark rectangle) so it stays clearly visible against any world's
+   * background color — the plain dark-gray bar could blend into similarly
+   * dark skies (Volcano, Haunted Forest, the final Fortress) and read as
+   * "hidden."
+   */
   drawBossBar() {
+    if (this.bossBarPanel) this.bossBarPanel.destroy();
     if (this.bossBarBg) this.bossBarBg.destroy();
     if (this.bossBarFg) this.bossBarFg.destroy();
     if (this.bossNameText) this.bossNameText.destroy();
     const cx = this.scale.width / 2;
     const barWidth = Math.min(300, this.scale.width - 120);
     this.bossBarWidth = barWidth;
+
+    const panelW = barWidth + 40;
+    this.bossBarPanel = this.add.graphics().setScrollFactor(0).setDepth(1499);
+    this.bossBarPanel.fillStyle(0x000000, 0.7);
+    this.bossBarPanel.fillRoundedRect(cx - panelW / 2, 2, panelW, 46, 10);
+    this.bossBarPanel.lineStyle(2, 0xffcc00, 0.9);
+    this.bossBarPanel.strokeRoundedRect(cx - panelW / 2, 2, panelW, 46, 10);
+
     this.bossBarBg = this.add.rectangle(cx, 30, barWidth, 18, 0x333333).setScrollFactor(0).setDepth(1500).setStrokeStyle(2, 0xffffff);
     // Origin (0, 0.5) + scaleX lets the fill visibly drain from full to
     // empty (tweened in updateBossBar) instead of just snapping to a new
     // size on every hit — "life being reduced" should read as motion.
     this.bossBarFg = this.add.rectangle(cx - barWidth / 2, 30, barWidth, 14, 0xff3333).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1501);
     this.bossBarFg.setScale(Math.max(0, this.bossHP / this.bossMaxHP), 1);
-    this.bossNameText = this.add.text(cx, 12, this.world.bossName, { fontSize: "13px", fill: "#fff" }).setOrigin(0.5).setScrollFactor(0).setDepth(1501);
+    this.bossNameText = this.add.text(cx, 12, this.world.bossName, { fontSize: "13px", fill: "#fff", fontStyle: "bold" }).setOrigin(0.5).setScrollFactor(0).setDepth(1501);
   }
 
   /** Called on every hit — smoothly drains the bar to the new HP fraction instead of snapping, with a brief white damage flash. */
@@ -333,10 +355,13 @@ export class GameScene extends Phaser.Scene {
     this.bossBarFg.setFillStyle(0xffee00);
     this.tweens.add({ targets: this.bossBarFg, scaleX: 0, duration: 350, ease: "Cubic.easeOut" });
     this.time.delayedCall(700, () => {
-      const targets = [this.bossBarBg, this.bossBarFg, this.bossNameText].filter(Boolean);
+      const targets = [this.bossBarPanel, this.bossBarBg, this.bossBarFg, this.bossNameText].filter(Boolean);
       this.tweens.add({
         targets, alpha: 0, duration: 500,
-        onComplete: () => { targets.forEach((t) => t.destroy()); this.bossBarBg = this.bossBarFg = this.bossNameText = null; },
+        onComplete: () => {
+          targets.forEach((t) => t.destroy());
+          this.bossBarPanel = this.bossBarBg = this.bossBarFg = this.bossNameText = null;
+        },
       });
     });
   }
@@ -430,12 +455,61 @@ export class GameScene extends Phaser.Scene {
     save.gameCompleted = save.clearedWorlds.every(Boolean);
     this.recordStat((stats) => (stats.bossesDefeated += 1));
 
+    if (this.bossRush) {
+      this.bossRushDefeated();
+      return;
+    }
+
     const isFinal = this.worldIndex === FINAL_WORLD_INDEX;
     const rewardLine = isFinal ? `You saved everyone and stopped ${VILLAIN} for good!` : `New Power Unlocked: ${this.world.rewardLabel}!`;
 
     this.time.delayedCall(1200, () => {
       const msg = this.add.text(this.scale.width / 2, this.scale.height / 2 - 40,
         `${this.world.friend} is FREE!\n${rewardLine}\n\nClick to continue`,
+        { fontSize: "20px", fill: "#ffcc00", align: "center", backgroundColor: "#000000cc", padding: { x: 20, y: 20 } }
+      ).setOrigin(0.5).setScrollFactor(0);
+      this.input.once("pointerdown", () => sceneTransition(this, "WorldMap"));
+    });
+  }
+
+  bossRushDefeated() {
+    const isLast = this.worldIndex >= WORLDS.length - 1;
+
+    if (!isLast) {
+      this.time.delayedCall(1200, () => {
+        const msg = this.add.text(this.scale.width / 2, this.scale.height / 2 - 40,
+          `${this.world.bossName} defeated!\nBoss ${this.worldIndex + 1} of ${WORLDS.length} down.`,
+          { fontSize: "18px", fill: "#ffcc00", align: "center", backgroundColor: "#000000cc", padding: { x: 20, y: 20 } }
+        ).setOrigin(0.5).setScrollFactor(0);
+        this.time.delayedCall(1000, () => {
+          msg.destroy();
+          sceneTransition(this, "GameScene", {
+            bossRush: true,
+            bossRushIndex: this.worldIndex + 1,
+            bossRushStartTime: this.bossRushStartTime,
+            score: this.score,
+            playerName: this.playerName,
+            profileTint: this.profileTint,
+          });
+        });
+      });
+      return;
+    }
+
+    const elapsedSeconds = Math.round((Date.now() - this.bossRushStartTime) / 1000);
+    const save = Save.current();
+    const prevBest = save.stats.bestBossRushSeconds;
+    const isNewBest = prevBest === null || prevBest === undefined || elapsedSeconds < prevBest;
+    if (isNewBest) save.stats.bestBossRushSeconds = elapsedSeconds;
+    const unlocked = checkAchievements(save);
+    Save.persist();
+    unlocked.forEach((ach) => this.showAchievementToast(ach));
+
+    const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+    this.time.delayedCall(1200, () => {
+      const msg = this.add.text(this.scale.width / 2, this.scale.height / 2 - 40,
+        `★ BOSS RUSH COMPLETE! ★\n\nTime: ${fmt(elapsedSeconds)}${isNewBest ? "  (NEW BEST!)" : `\nBest: ${fmt(save.stats.bestBossRushSeconds)}`}\n\nClick to continue`,
         { fontSize: "20px", fill: "#ffcc00", align: "center", backgroundColor: "#000000cc", padding: { x: 20, y: 20 } }
       ).setOrigin(0.5).setScrollFactor(0);
       this.input.once("pointerdown", () => sceneTransition(this, "WorldMap"));
@@ -742,6 +816,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   updateHUD() {
-    this.scoreText.setText(`${this.playerName} | Rings: ${this.score} | ${this.world.name} - ${this.stageData.type === "boss" ? "BOSS" : "Stage " + (this.stageIndex + 1)}`);
+    if (this.bossRush) {
+      this.scoreText.setText(`${this.playerName} | Rings: ${this.score} | BOSS RUSH ${this.worldIndex + 1}/${WORLDS.length}`);
+    } else {
+      this.scoreText.setText(`${this.playerName} | Rings: ${this.score} | ${this.world.name} - ${this.stageData.type === "boss" ? "BOSS" : "Stage " + (this.stageIndex + 1)}`);
+    }
   }
 }
