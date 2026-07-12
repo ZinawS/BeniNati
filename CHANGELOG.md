@@ -4,6 +4,32 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is
 [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] — Real touch controls, guaranteed audio unlock fallback, more juice
+
+### Fixed
+- Mobile audio: `initAudioUnlock()` previously attached one-time listeners only
+  to `document`. It now also listens on `#game-container` directly (in case a
+  mobile browser's touch handling on a canvas doesn't reliably bubble a plain
+  page click) and keeps retrying on every gesture instead of only the first
+  one, since a context can re-suspend (e.g. after backgrounding the tab).
+- Added a persistent, always-tappable sound indicator (🔊/🔈/🔇) in the HUD —
+  tapping it triggers a fresh, guaranteed-synchronous unlock attempt directly
+  from a Phaser pointer event, as a fallback if the passive listeners still
+  don't catch it on a specific device, and doubles as a visible mute toggle.
+
+### Changed
+- On-screen touch controls completely rebuilt: real drawn triangle arrows (not
+  font glyphs, which render inconsistently across mobile browsers) in a
+  proper D-pad cross (up/down/left/right — up is jump), backed by its own
+  rounded semi-transparent panel so it reads as a real control pad, not
+  floating icons on bare game art. The action button (homing attack / air
+  dash) is a distinct star icon in its own panel, color-coded differently
+  from movement. All buttons now show a pressed state (scale + fill change).
+
+### Added
+- Landing-impact juice: a dust-particle puff + soft thud sound when the
+  player lands from a fall of meaningful height.
+
 ## [1.1.0] — Audio reliability, mobile responsiveness, UI/cinematic polish
 
 ### Fixed

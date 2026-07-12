@@ -90,6 +90,30 @@ screen:
   but not measured; "no lag" and "60+ FPS on mobile" specifically have not been
   confirmed.
 
+## Known issue history: mobile audio
+
+A previous release attempted the standard "unlock AudioContext on first
+gesture" fix and it was reported as still not working on a real phone. Rather
+than assume that fix was sufficient, this release adds a second, independent
+layer: listeners on both `document` and `#game-container` (not just one), no
+longer `{ once: true }` (a context can re-suspend), and a visible, manually
+tappable sound icon that triggers a resume attempt from directly inside a
+Phaser pointer event — about as close to "guaranteed to work" as this can get
+without access to the actual device. If sound is still silent after this
+change, the next things to check, in order:
+
+1. **The phone's hardware mute/silent switch (iOS).** Web Audio API sound
+   (unlike some categories of HTML5 `<audio>`) is generally subject to this
+   switch — this has nothing to do with the code and is worth ruling out
+   first.
+2. Whether the 🔇 icon in the corner ever changes to 🔊/🔈 — if it stays 🔇
+   even after tapping it directly, the `AudioContext` itself is failing to
+   reach `"running"` state on that device, which would need the browser's
+   remote-debugging console (e.g. `chrome://inspect` from a desktop connected
+   to the phone) to see the actual error.
+3. Whether the device is in Low Power Mode or has a restrictive "Prevent
+   Cross-Site Tracking"/content-blocker setup that could affect page scripts.
+
 ## Per-feature browser/platform support (by API, not by testing)
 
 This documents what each feature *depends on*, so you know what's actually at risk
