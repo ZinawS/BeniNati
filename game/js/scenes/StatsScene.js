@@ -1,10 +1,12 @@
 import { Save } from "../systems/save.js";
 import { ACHIEVEMENTS } from "../systems/achievements.js";
+import { makeButton, sceneTransition, fadeInScene } from "../ui/uiHelpers.js";
 
 export class StatsScene extends Phaser.Scene {
   constructor() { super("StatsScene"); }
 
   create() {
+    fadeInScene(this);
     const save = Save.current();
     this.add.text(400, 30, "STATS & ACHIEVEMENTS", { fontSize: "24px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
 
@@ -33,6 +35,6 @@ export class StatsScene extends Phaser.Scene {
       y += 26;
     });
 
-    this.add.text(400, 566, "Back", { fontSize: "16px", fill: "#00ff00" }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on("pointerdown", () => this.scene.start("WorldMap"));
+    makeButton(this, 400, 566, "Back", () => sceneTransition(this, "WorldMap"), { color: "#00ff00" });
   }
 }

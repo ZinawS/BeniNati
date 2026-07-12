@@ -1,3 +1,5 @@
+import { makeButton, sceneTransition, fadeInScene } from "../ui/uiHelpers.js";
+
 export class HowToPlay extends Phaser.Scene {
   constructor() { super("HowToPlay"); }
 
@@ -6,6 +8,7 @@ export class HowToPlay extends Phaser.Scene {
   }
 
   create() {
+    fadeInScene(this);
     this.add.text(400, 30, "HOW TO PLAY", { fontSize: "28px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
     const lines = [
       ["Move", "Left & Right arrow keys, gamepad stick/d-pad, or the on-screen arrows on touch devices."],
@@ -26,6 +29,6 @@ export class HowToPlay extends Phaser.Scene {
       this.add.text(210, y, desc, { fontSize: "13px", fill: "#eee", wordWrap: { width: 540 } });
       y += 34;
     });
-    this.add.text(400, 566, "Back", { fontSize: "16px", fill: "#00ff00" }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on("pointerdown", () => this.scene.start(this.returnTo));
+    makeButton(this, 400, 566, "Back", () => sceneTransition(this, this.returnTo), { color: "#00ff00" });
   }
 }

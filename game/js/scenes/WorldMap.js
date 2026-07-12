@@ -1,6 +1,7 @@
 import { WORLDS, VILLAIN } from "../config/worlds.js";
 import { THEMES } from "../config/themes.js";
 import { Save, Profiles } from "../systems/save.js";
+import { makeButton, addHoverFeedback, sceneTransition, fadeInScene } from "../ui/uiHelpers.js";
 
 export class WorldMap extends Phaser.Scene {
   constructor() { super("WorldMap"); }
@@ -16,6 +17,7 @@ export class WorldMap extends Phaser.Scene {
   }
 
   create() {
+    fadeInScene(this);
     const save = Save.current();
     this.add.text(400, 22, `${this.playerName}'s Journey`, { fontSize: "22px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
     this.resetArmed = false;
@@ -31,9 +33,9 @@ export class WorldMap extends Phaser.Scene {
       this.add.text(x, y - 36, world.name, { fontSize: "12px", fill: color, fontStyle: "bold", align: "center", wordWrap: { width: 130 } }).setOrigin(0.5);
       this.add.text(x, y + 36, cleared ? "CLEARED" : unlocked ? "PLAY" : "LOCKED", { fontSize: "12px", fill: color }).setOrigin(0.5);
       if (unlocked) {
-        box.setInteractive({ useHandCursor: true });
+        addHoverFeedback(this, box);
         box.on("pointerdown", () => {
-          this.scene.start("GameScene", { worldIndex: i, stageIndex: 0, score: 0, playerName: this.playerName, profileTint: this.profileTint });
+          sceneTransition(this, "GameScene", { worldIndex: i, stageIndex: 0, score: 0, playerName: this.playerName, profileTint: this.profileTint });
         });
       }
     });
@@ -45,13 +47,12 @@ export class WorldMap extends Phaser.Scene {
       this.add.text(400, 407, "New Game+ and Nightmare Mode are available in Settings!", { fontSize: "13px", fill: "#aaddff" }).setOrigin(0.5);
     }
 
-    const howTo = this.add.text(150, 445, "[ How To Play ]", { fontSize: "12px", fill: "#ffcc00" }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on("pointerdown", () => this.scene.start("HowToPlay", { returnTo: "WorldMap" }));
-    const settingsBtn = this.add.text(290, 445, "[ Settings ]", { fontSize: "12px", fill: "#ffcc00" }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on("pointerdown", () => this.scene.start("Settings"));
-    const statsBtn = this.add.text(420, 445, "[ Stats ]", { fontSize: "12px", fill: "#ffcc00" }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on("pointerdown", () => this.scene.start("StatsScene"));
-    const switchBtn = this.add.text(540, 445, "[ Switch Player ]", { fontSize: "12px", fill: "#ffcc00" }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on("pointerdown", () => this.scene.start("ProfileSelect"));
+    makeButton(this, 150, 445, "[ How To Play ]", () => sceneTransition(this, "HowToPlay", { returnTo: "WorldMap" }), { fontSize: "12px" });
+    makeButton(this, 290, 445, "[ Settings ]", () => sceneTransition(this, "Settings"), { fontSize: "12px" });
+    makeButton(this, 420, 445, "[ Stats ]", () => sceneTransition(this, "StatsScene"), { fontSize: "12px" });
+    makeButton(this, 560, 445, "[ Switch Player ]", () => sceneTransition(this, "ProfileSelect"), { fontSize: "12px" });
 
-    const resetText = this.add.text(680, 445, "Reset Progress", { fontSize: "12px", fill: "#884444" }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    resetText.on("pointerdown", () => {
+    const resetText = makeButton(this, 700, 445, "Reset Progress", () => {
       if (!this.resetArmed) {
         this.resetArmed = true;
         resetText.setText("Click again to confirm!");
@@ -60,8 +61,8 @@ export class WorldMap extends Phaser.Scene {
         Save.reset();
         this.scene.restart();
       }
-    });
+    }, { fontSize: "12px", color: "#884444" });
 
-    this.add.text(400, 475, "Back to Menu", { fontSize: "13px", fill: "#aaaaaa" }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on("pointerdown", () => this.scene.start("MainMenu"));
+    makeButton(this, 400, 480, "Back to Menu", () => sceneTransition(this, "MainMenu"), { fontSize: "13px", color: "#aaaaaa" });
   }
 }
