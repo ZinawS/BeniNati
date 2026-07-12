@@ -89,10 +89,22 @@ defeated, times respawned) and a small set of achievements, viewable from the
 
 ## Accessibility & options
 
+- **Sound Effects** and **Music** have independent on/off toggles in Settings.
+  Background music is continuous, generative, and adapts — it intensifies during
+  boss fights — see `docs/ARCHITECTURE.md` for how.
 - **Encouraging messages** (on by default) show a short, friendly tip whenever you
   respawn after a mistake — can be turned off in Settings.
 - **Nightmare Mode** unlocks after finishing the whole story: faster enemies and
   tougher bosses, for a second playthrough.
+
+## Mobile & responsive play
+
+The canvas scales and centers itself to fit any screen (phone, tablet, laptop,
+desktop) via Phaser's Scale Manager, going full-bleed edge-to-edge on small screens.
+Since this is a landscape platformer, holding a phone in portrait shows a "please
+rotate" overlay instead of squeezing the game into a narrow strip. Audio unlocks
+automatically on your first tap/keypress, working around mobile browsers' autoplay
+restrictions rather than requiring a specific button.
 
 ## Project structure
 

@@ -2,27 +2,26 @@
 
 This is an honest account of what was actually checked before this project was
 committed — not a formal test report, because no automated or manual browser testing
-was run against a live page. Treat the "Verified" section as real, and the
-"Not verified" section as an explicit to-do before you'd call this release-ready.
+was run against a live page on real devices. Treat "Verified" as real, and
+"Not verified" as an explicit to-do before you'd call this release-ready.
 
 ## Verified (automated, reproducible)
 
 - **JS syntax** — every file under `game/js/` parses cleanly as an ES module
   (`node --input-type=module --check`).
-- **Import graph resolves** — every `import`/`export` across all 13 modules resolves
-  to a real, correctly-named export. Verified by loading `main.js` under Node with a
-  minimal `Phaser` global stub (see the command below) — this would fail loudly on a
-  typo'd import or a missing export.
+- **Import graph resolves** — every `import`/`export` across all modules resolves to
+  a real, correctly-named export, re-verified after the UI/audio/mobile rework.
+  Verified by loading `main.js` under Node with a minimal `Phaser`/DOM stub (command
+  below) — this would fail loudly on a typo'd import or a missing export.
 - **Level data structural integrity** — for all 9 worlds × 3 stages: every row in a
-  stage's ASCII map has the same length (no silently-misaligned tiles), every
-  character used is a recognized tile type, every non-boss stage has exactly one
-  player start (`P`) and at least one goal (`G`).
-- **Extraction fidelity** — the modular `config/worlds.js` was diffed structurally
-  against the original monolithic file's level data (same check, same result) to
-  confirm the file split didn't silently drop or corrupt a tile during the manual
-  extraction.
+  stage's ASCII map has the same length, every character used is a recognized tile
+  type, every non-boss stage has exactly one player start (`P`) and at least one
+  goal (`G`).
+- **Extraction fidelity** — `config/worlds.js` was diffed structurally against the
+  original monolithic file's level data to confirm no tile was dropped or corrupted
+  during the file-split refactor.
 
-Reproduce the import-graph and level-data checks:
+Reproduce the import-graph check:
 
 ```bash
 cd game/js
@@ -34,44 +33,82 @@ globalThis.Phaser = {
   Utils: { Array: { GetRandom: (a) => a[0] } },
   AUTO: 1,
   Game: class Game {},
+  Scale: { FIT: 1, CENTER_BOTH: 1 },
 };
 globalThis.navigator = { getGamepads: () => [], maxTouchPoints: 0 };
-globalThis.document = { getElementById: () => null, createElement: () => ({ getContext: () => ({}) }) };
+globalThis.document = {
+  getElementById: () => ({ classList: { add(){}, remove(){}, toggle(){} }, addEventListener(){} }),
+  createElement: () => ({ getContext: () => ({}) }),
+  addEventListener: () => {},
+};
 globalThis.localStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
 EOF
 node -e "import('/tmp/phaser_stub.mjs').then(() => import('./main.js')).then(() => console.log('OK'))"
 ```
 
-## Not verified (needs a real browser)
+## Not verified (needs a real browser / real device)
 
-These require actually clicking through the game — no shell command can substitute:
+No shell command substitutes for these — they need an actual person on an actual
+screen:
 
+- **Audio unlock on mobile Safari specifically** — `systems/audio.js` implements the
+  standard fix (create + resume the `AudioContext` and play a silent buffer inside
+  the very first `pointerdown`/`touchstart`/`keydown`), which is the documented
+  workaround for iOS's stricter-than-Chrome autoplay policy. This is the correct
+  *pattern*, but it was not confirmed on an actual iPhone.
+- **Music crossfade across stage transitions** — `Music.playTheme()` is called from
+  the new `GameScene.create()`, and the old scene's `Music.stop()` runs from its
+  `shutdown` handler. Phaser's documented scene lifecycle shuts down the outgoing
+  scene before the incoming one's `create()` runs, which is the ordering this code
+  depends on for a clean crossfade instead of the new track getting cut short — this
+  matches Phaser's documented behavior but wasn't watched happening live. If a stage
+  transition ever sounds like the music cuts out right after starting, this ordering
+  is the first place to look.
+- **Scale.FIT on real mobile viewports** — `main.js` now configures Phaser's Scale
+  Manager (`FIT` + `CENTER_BOTH`) and `main.css` was reworked to be full-bleed on
+  small screens with a decorative bordered window only above 900×700, plus a
+  portrait-orientation guard overlay. The logic is standard Phaser/CSS, but actual
+  letterboxing/touch-button placement on an iPhone/Android in the browser's
+  responsive-design-mode is not the same as on physical hardware (real safe-area
+  insets, real on-screen-keyboard behavior, real notch/dynamic-island).
+- **Gamepad mapping** — button/axis indices follow the standard Gamepad API mapping,
+  not tested against physical hardware (Xbox/PlayStation/generic controllers can
+  differ), and Safari/iOS has historically had partial/inconsistent Gamepad API
+  support — the code degrades gracefully (no gamepad detected → keyboard/touch still
+  work) but that fallback path wasn't exercised on Safari specifically.
+- **Vibration API** — `vibrate()` uses the Gamepad `vibrationActuator`, which has no
+  iOS implementation at all (Apple doesn't expose it to web content) — the code
+  already no-ops safely via try/catch, this is just a known platform gap, not a bug
+  to fix.
 - **Gameplay feel** — jump/gap distances, the Sky Kingdom wall-jump shaft, the
   Haunted Forest wind-current crossings, and the final-boss transformation timing
   were tuned by calculation, not by playing them.
-- **Touch controls** — the on-screen buttons in `systems/input.js` have never been
-  tapped on an actual touchscreen; button placement/size may need adjustment.
-  particularly at different aspect ratios (the buttons use fixed 800×600-space
-  coordinates).
-- **Gamepad mapping** — button/axis indices follow the standard Gamepad API mapping,
-  but were not tested against physical hardware (Xbox/PlayStation/generic
-  controllers can differ).
-- **Cross-browser behavior** — only checked for syntax/module compatibility, not
-  actually loaded in Chrome/Firefox/Safari. ES modules and the Web Audio /
-  Vibration APIs used are all broadly supported in current browsers, but "should
-  work" isn't the same as "was seen working."
-- **Save migration** — the `migrateSave()` upgrade path (old save shape → new fields
-  defaulted in) was written carefully and mirrors a version that was validated
-  earlier in this project's history, but wasn't re-tested end-to-end against a real
-  pre-profile-system localStorage blob.
-- **Performance** — no frame-rate profiling was done. The particle counts and
-  physics group sizes are modest (this is not a graphically heavy game), so 60fps on
-  a normal laptop is expected but not measured.
+- **Save migration** — `migrateSave()` (old save shape → new fields defaulted in)
+  wasn't re-tested end-to-end against a real pre-profile-system localStorage blob.
+- **Performance** — no frame-rate profiling was done on any device. Particle counts
+  and physics group sizes are modest, so 60fps on a normal laptop/phone is expected
+  but not measured; "no lag" and "60+ FPS on mobile" specifically have not been
+  confirmed.
+
+## Per-feature browser/platform support (by API, not by testing)
+
+This documents what each feature *depends on*, so you know what's actually at risk
+if something breaks on a specific device — it's a support matrix, not a test result:
+
+| Feature | Depends on | Known gaps |
+|---|---|---|
+| Core game | ES modules, Canvas 2D/WebGL | Needs a static server (not `file://`) — see README |
+| Audio (SFX + music) | Web Audio API | Universally supported in current browsers; mobile requires the gesture-unlock this project implements |
+| Gamepad input | Gamepad API | Not supported the same way on iOS Safari; falls back to keyboard/touch |
+| Vibration | Gamepad `vibrationActuator` | No iOS support at all (silently no-ops) |
+| Touch controls | Pointer Events | Broadly supported; on-screen buttons only render when `ontouchstart`/`maxTouchPoints` indicates a touch device |
+| Save/profiles | `localStorage` | Unavailable in some private-browsing modes (notably older iOS Safari private tabs) — the code catches the exception but progress simply won't persist in that case |
 
 ## Recommendation
 
 Before treating this as "done," have Nati and Beniyas (or whoever) actually play
-through: each world once, the wind-current and wall-jump sections specifically, and
-the final boss fight through the transformation. Report anything that feels
-unfair or broken and it can be tuned quickly — the level data lives in one file
-(`config/levels.js`) specifically to make that easy.
+through on both a laptop and a phone: each world once, the wind-current and
+wall-jump sections specifically, the final boss fight through the transformation,
+and — specifically for this round of changes — confirm sound is audible from the
+very first tap on a phone, and that rotating a phone to portrait actually shows the
+rotate-prompt. Report anything that feels unfair, silent, or visually broken.

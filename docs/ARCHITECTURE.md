@@ -17,11 +17,25 @@ game/js/
 │   │                        baked in — they only know about save shape, audio, input.
 │   ├── save.js               Profiles (registry) + Save (active profile's mutable
 │   │                        state + persistence). See "Save system" below.
-│   ├── audio.js              Procedural SFX via Web Audio oscillators + gamepad vibration.
+│   ├── audio.js              Procedural SFX + adaptive ambient Music (Web Audio
+│   │                        oscillators, no audio files), gamepad vibration, and
+│   │                        initAudioUnlock() — the cross-browser/mobile autoplay
+│   │                        workaround. See "Audio system" below.
 │   ├── input.js              InputController: merges keyboard/gamepad/touch into one
 │   │                        per-frame snapshot {left, right, downHeld, downJustPressed,
 │   │                        jumpJustPressed, actionJustPressed}.
-│   └── achievements.js       Achievement definitions + checkAchievements(save).
+│   ├── achievements.js       Achievement definitions + checkAchievements(save).
+│   └── platform.js           isTouchDevice — the one runtime feature-detect shared
+│                              by input.js and ui/orientationGuard.js.
+├── ui/                      Presentation helpers with no game-rule knowledge — reused
+│   │                        by every menu scene so they share one visual language.
+│   ├── uiHelpers.js           makeButton() (hover/press feedback + click sound),
+│   │                        addHoverFeedback() (same, for non-text game objects),
+│   │                        sceneTransition()/fadeInScene() (camera fade cuts).
+│   └── orientationGuard.js    Shows a DOM "please rotate" overlay when a touch
+│                              device is held in portrait — lives outside the Phaser
+│                              canvas entirely, so it works regardless of which scene
+│                              is active.
 └── scenes/                  One Phaser.Scene subclass per file. This is the only layer
     ├── PreloadScene.js       that imports Phaser features (Scene, Math, Input, Utils).
     ├── MainMenu.js
@@ -129,3 +143,50 @@ becomes immune to the boss's non-vulnerable contact damage, and the boss enters 
 faster final phase. This intentionally mirrors the classic "power up mid-fight" beat
 (a Super Sonic-style transformation) rather than treating that form as a separate
 final boss.
+
+Every boss fight also opens with a short camera flourish (`setupBoss()`): the player
+is frozen (`body.moves = false`, not just `inputLocked`, so they don't drift during
+the cut), the camera pans/zooms to the boss and back, then hands control back. This
+is the "cinematic boss intro" — a scripted camera move, not a pre-rendered cutscene.
+
+## Audio system
+
+Everything audible is generated at runtime with the Web Audio API in
+`systems/audio.js` — there are no `.mp3`/`.wav` files anywhere in the project:
+
+- **SFX** — short oscillator "beeps" with per-action frequency/envelope (jump, ring,
+  hurt, boss-hit, achievement, UI click/hover, etc.).
+- **Music** (`Music`, a module-level singleton) — a continuous generative pad: two
+  detuned sine oscillators a fifth apart plus a slow LFO on the master gain, one root
+  frequency per world theme so each world sounds distinct. `Music.playTheme(themeIndex)`
+  crossfades in on `GameScene.create()`; `Music.setBossIntensity(true)` layers in a
+  rhythmic sawtooth pulse for boss fights; `Music.stop()` fades out on scene
+  `shutdown`. This is deliberately simple (no composed/recorded score, since there
+  are no audio assets in this project) but it is real, continuous, adaptive
+  background music, not silence.
+- **Autoplay/mobile unlock** — `initAudioUnlock()` (called once from `main.js`)
+  attaches one-time `pointerdown`/`touchstart`/`keydown` listeners that create and
+  resume the shared `AudioContext` and play a one-sample silent buffer, which is the
+  standard cross-browser fix for browsers (especially iOS Safari) that start every
+  `AudioContext` suspended until a genuine user gesture unlocks it. This is the fix
+  for "the sound system doesn't reliably work" — it no longer depends on the user
+  happening to click a specific button first.
+- **Settings** — `save.settings.sfx` / `save.settings.music` (independent toggles,
+  both default on) gate `SFX.*` and `Music.*` respectively via a small `isEnabled()`
+  check in `audio.js`, editable from the Settings scene.
+
+## Responsive design & mobile
+
+`main.js` configures Phaser's Scale Manager (`Phaser.Scale.FIT` + `CENTER_BOTH`)
+instead of relying on CSS alone to resize the canvas — Phaser needs to own the scale
+calculation for pointer/touch coordinates to map back to game-space correctly.
+`css/main.css` is mobile-first: the game fills the viewport edge-to-edge on small
+screens, and only above `900×700` does the decorative bordered "floating window"
+look (border, glow, rounded corners) reappear, via a media query — there's no reason
+to eat screen space with a border on a phone.
+
+`ui/orientationGuard.js` is intentionally *not* a Phaser scene — it's a plain DOM
+overlay (`#orientation-guard` in `index.html`) toggled by a `resize`/`orientationchange`
+listener, so it works no matter which scene is active, including mid-transition.
+This is a landscape platformer; there's no attempt to make it "work" in portrait,
+only to ask the player to rotate.
