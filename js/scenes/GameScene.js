@@ -300,16 +300,45 @@ export class GameScene extends Phaser.Scene {
     this.showHint(`BOSS: ${this.world.bossName}! Wait for it to flash YELLOW, then jump on it or dash into it!`);
   }
 
+  /** (Re)creates the bar at the right position/size — used on setup and on resize, where an instant snap is correct (the screen itself just changed). */
   drawBossBar() {
     if (this.bossBarBg) this.bossBarBg.destroy();
     if (this.bossBarFg) this.bossBarFg.destroy();
     if (this.bossNameText) this.bossNameText.destroy();
     const cx = this.scale.width / 2;
     const barWidth = Math.min(300, this.scale.width - 120);
-    this.bossBarBg = this.add.rectangle(cx, 30, barWidth, 18, 0x333333).setScrollFactor(0).setStrokeStyle(2, 0xffffff);
+    this.bossBarWidth = barWidth;
+    this.bossBarBg = this.add.rectangle(cx, 30, barWidth, 18, 0x333333).setScrollFactor(0).setDepth(1500).setStrokeStyle(2, 0xffffff);
+    // Origin (0, 0.5) + scaleX lets the fill visibly drain from full to
+    // empty (tweened in updateBossBar) instead of just snapping to a new
+    // size on every hit — "life being reduced" should read as motion.
+    this.bossBarFg = this.add.rectangle(cx - barWidth / 2, 30, barWidth, 14, 0xff3333).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1501);
+    this.bossBarFg.setScale(Math.max(0, this.bossHP / this.bossMaxHP), 1);
+    this.bossNameText = this.add.text(cx, 12, this.world.bossName, { fontSize: "13px", fill: "#fff" }).setOrigin(0.5).setScrollFactor(0).setDepth(1501);
+  }
+
+  /** Called on every hit — smoothly drains the bar to the new HP fraction instead of snapping, with a brief white damage flash. */
+  updateBossBar() {
+    if (!this.bossBarFg) return;
     const pct = Math.max(0, this.bossHP / this.bossMaxHP);
-    this.bossBarFg = this.add.rectangle(cx - barWidth / 2 + (barWidth * pct) / 2, 30, barWidth * pct, 14, 0xff3333).setScrollFactor(0);
-    this.bossNameText = this.add.text(cx, 12, this.world.bossName, { fontSize: "13px", fill: "#fff" }).setOrigin(0.5).setScrollFactor(0);
+    this.tweens.add({ targets: this.bossBarFg, scaleX: pct, duration: 280, ease: "Cubic.easeOut" });
+    this.tweens.add({ targets: this.bossBarBg, x: this.bossBarBg.x - 3, duration: 40, yoyo: true, repeat: 3 });
+    this.bossBarFg.setFillStyle(0xffffff);
+    this.time.delayedCall(150, () => { if (this.bossBarFg && this.bossBarFg.active) this.bossBarFg.setFillStyle(0xff3333); });
+  }
+
+  /** The "completed" moment — bar visibly drains to empty and fades out, instead of just being abandoned when the boss dies. */
+  drainBossBarToZero() {
+    if (!this.bossBarFg) return;
+    this.bossBarFg.setFillStyle(0xffee00);
+    this.tweens.add({ targets: this.bossBarFg, scaleX: 0, duration: 350, ease: "Cubic.easeOut" });
+    this.time.delayedCall(700, () => {
+      const targets = [this.bossBarBg, this.bossBarFg, this.bossNameText].filter(Boolean);
+      this.tweens.add({
+        targets, alpha: 0, duration: 500,
+        onComplete: () => { targets.forEach((t) => t.destroy()); this.bossBarBg = this.bossBarFg = this.bossNameText = null; },
+      });
+    });
   }
 
   bossAttack() {
@@ -341,7 +370,7 @@ export class GameScene extends Phaser.Scene {
     this.player.setVelocityY(-350);
     this.bossHitCooldown = true;
     this.time.delayedCall(500, () => (this.bossHitCooldown = false));
-    this.drawBossBar();
+    this.updateBossBar();
 
     if (this.worldIndex === FINAL_WORLD_INDEX && !this.superTriggered && this.bossHP <= this.bossMaxHP * 0.5) {
       this.triggerSuperTransformation();
@@ -384,6 +413,7 @@ export class GameScene extends Phaser.Scene {
     SFX.bossDefeat();
     vibrate(500, 0.7, 1);
     Music.setBossIntensity(false);
+    this.drainBossBarToZero();
     const container = document.getElementById("game-container");
     if (container) container.classList.remove("boss-mode");
     if (this.superParticles) this.superParticles.destroy();
