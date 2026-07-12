@@ -1,6 +1,6 @@
 import { Save } from "../systems/save.js";
 import { ACHIEVEMENTS } from "../systems/achievements.js";
-import { makeButton, sceneTransition, fadeInScene } from "../ui/uiHelpers.js";
+import { makeButton, sceneTransition, fadeInScene, screenAnchors } from "../ui/uiHelpers.js";
 
 export class StatsScene extends Phaser.Scene {
   constructor() { super("StatsScene"); }
@@ -8,7 +8,8 @@ export class StatsScene extends Phaser.Scene {
   create() {
     fadeInScene(this);
     const save = Save.current();
-    this.add.text(400, 30, "STATS & ACHIEVEMENTS", { fontSize: "24px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
+    const { cx, width, height } = screenAnchors(this);
+    this.add.text(cx, height * 0.08, "STATS & ACHIEVEMENTS", { fontSize: "22px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
 
     const stats = [
       `Rings collected (lifetime): ${save.stats.totalRings}`,
@@ -17,24 +18,33 @@ export class StatsScene extends Phaser.Scene {
       `Times respawned: ${save.stats.deaths}`,
       `Worlds cleared: ${save.clearedWorlds.filter(Boolean).length} / ${save.clearedWorlds.length}`,
     ];
-    let y = 80;
+
+    // Side-by-side on wide screens (stats left, achievements right); stacked
+    // on anything narrower so nothing gets cramped.
+    const sideBySide = width >= 640;
+    const leftX = sideBySide ? 40 : 40;
+    const rightX = sideBySide ? width / 2 + 20 : 40;
+    let y = height * 0.2;
+
     stats.forEach((line) => {
-      this.add.text(60, y, line, { fontSize: "15px", fill: "#eee" });
+      this.add.text(leftX, y, line, { fontSize: "14px", fill: "#eee" });
       y += 26;
     });
 
-    this.add.text(60, y + 10, "Achievements:", { fontSize: "17px", fill: "#66ccff", fontStyle: "bold" });
-    y += 44;
+    let ay = sideBySide ? height * 0.2 : y + 20;
+    this.add.text(rightX, ay, "Achievements:", { fontSize: "15px", fill: "#66ccff", fontStyle: "bold" });
+    ay += 30;
     const unlocked = new Set(save.stats.achievements || []);
+    const achWrap = sideBySide ? width / 2 - 60 : width - 80;
     ACHIEVEMENTS.forEach((ach) => {
       const got = unlocked.has(ach.id);
       const label = got ? `★ ${ach.name}` : `☆ ???`;
       const desc = got ? ach.description : "Keep playing to unlock this one!";
-      this.add.text(60, y, label, { fontSize: "14px", fill: got ? "#ffcc00" : "#666", fontStyle: "bold" });
-      this.add.text(300, y, desc, { fontSize: "12px", fill: got ? "#ccc" : "#555", wordWrap: { width: 420 } });
-      y += 26;
+      this.add.text(rightX, ay, label, { fontSize: "13px", fill: got ? "#ffcc00" : "#666", fontStyle: "bold" });
+      this.add.text(rightX, ay + 14, desc, { fontSize: "11px", fill: got ? "#ccc" : "#555", wordWrap: { width: achWrap } });
+      ay += 32;
     });
 
-    makeButton(this, 400, 566, "Back", () => sceneTransition(this, "WorldMap"), { color: "#00ff00" });
+    makeButton(this, cx, height - 26, "Back", () => sceneTransition(this, "WorldMap"), { color: "#00ff00" });
   }
 }

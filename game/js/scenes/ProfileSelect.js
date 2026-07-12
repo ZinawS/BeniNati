@@ -1,5 +1,5 @@
 import { Profiles, Save, sanitizeName } from "../systems/save.js";
-import { makeButton, addHoverFeedback, sceneTransition, fadeInScene } from "../ui/uiHelpers.js";
+import { makeButton, addHoverFeedback, sceneTransition, fadeInScene, screenAnchors } from "../ui/uiHelpers.js";
 
 // Lets any number of players share the same browser, each with their own
 // save (abilities, cleared worlds, stats, achievements). "Nati" and
@@ -10,10 +10,11 @@ export class ProfileSelect extends Phaser.Scene {
   create() {
     fadeInScene(this);
     Profiles.ensureDefaults();
-    this.add.text(400, 40, "Who's Playing?", { fontSize: "30px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
+    const { cx, height } = screenAnchors(this);
+    this.add.text(cx, height * 0.09, "Who's Playing?", { fontSize: "30px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
     this.renderProfiles();
 
-    makeButton(this, 400, 560, "Back to Menu", () => sceneTransition(this, "MainMenu"), { fontSize: "14px", color: "#aaaaaa" });
+    makeButton(this, cx, height - 24, "Back to Menu", () => sceneTransition(this, "MainMenu"), { fontSize: "14px", color: "#aaaaaa" });
   }
 
   renderProfiles() {
@@ -21,11 +22,17 @@ export class ProfileSelect extends Phaser.Scene {
     this.profileContainer = [];
     const add = (obj) => { this.profileContainer.push(obj); return obj; };
 
+    const { width, height } = screenAnchors(this);
+    const cellW = 180, cellH = 170;
+    const cols = Math.max(3, Math.min(6, Math.floor(width / cellW)));
+    const gridWidth = cols * cellW;
+    const startX = (width - gridWidth) / 2 + cellW / 2;
+    const startY = Math.min(160, height * 0.35);
+
     const profiles = Profiles.list();
-    const cols = 4;
     profiles.forEach((p, i) => {
-      const x = 130 + (i % cols) * 180;
-      const y = 160 + Math.floor(i / cols) * 170;
+      const x = startX + (i % cols) * cellW;
+      const y = startY + Math.floor(i / cols) * cellH;
 
       const card = add(this.add.rectangle(x, y, 150, 130, 0x222244, 0.9).setStrokeStyle(2, p.tint || 0xffffff));
       addHoverFeedback(this, card);
@@ -49,8 +56,8 @@ export class ProfileSelect extends Phaser.Scene {
       }, { fontSize: "11px", color: "#ff6666" }));
     });
 
-    const newX = 130 + (profiles.length % cols) * 180;
-    const newY = 160 + Math.floor(profiles.length / cols) * 170;
+    const newX = startX + (profiles.length % cols) * cellW;
+    const newY = startY + Math.floor(profiles.length / cols) * cellH;
     const newCard = add(this.add.rectangle(newX, newY, 150, 130, 0x1a1a2a, 0.9).setStrokeStyle(2, 0x00ff88));
     addHoverFeedback(this, newCard);
     add(this.add.text(newX, newY, "+ New\nPlayer", { fontSize: "16px", fill: "#00ff88", align: "center" }).setOrigin(0.5));

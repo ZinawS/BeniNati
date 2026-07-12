@@ -1,4 +1,4 @@
-import { makeButton, sceneTransition, fadeInScene } from "../ui/uiHelpers.js";
+import { makeButton, sceneTransition, fadeInScene, screenAnchors } from "../ui/uiHelpers.js";
 
 export class HowToPlay extends Phaser.Scene {
   constructor() { super("HowToPlay"); }
@@ -9,26 +9,40 @@ export class HowToPlay extends Phaser.Scene {
 
   create() {
     fadeInScene(this);
-    this.add.text(400, 30, "HOW TO PLAY", { fontSize: "28px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
+    const { cx, width, height } = screenAnchors(this);
+    this.add.text(cx, height * 0.08, "HOW TO PLAY", { fontSize: "26px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
+
     const lines = [
-      ["Move", "Left & Right arrow keys, gamepad stick/d-pad, or the on-screen arrows on touch devices."],
-      ["Jump", "UP arrow, SPACE, gamepad A, or the on-screen ● button. Press again in mid-air for Double Jump (once unlocked)."],
+      ["Move", "Left/Right arrows, gamepad, or the on-screen ◀▶ buttons on your left thumb."],
+      ["Jump / Double Jump", "UP, SPACE, gamepad A, or the on-screen ▲ button on your right thumb. Press again in mid-air to double jump (once unlocked)."],
       ["Wall Jump", "Jump while touching a wall, then press Jump again to bounce off (once unlocked)."],
-      ["Spin Dash", "Hold DOWN while standing still, then release to launch forward (once unlocked)."],
-      ["Ground Pound", "Press DOWN while in mid-air to slam down and shock nearby enemies (once unlocked)."],
-      ["Homing / Air Dash", "Press X, Z, gamepad B/X, or the on-screen ✕ button in mid-air — snaps to the nearest enemy, or dashes forward if none is close."],
-      ["Rings", "Collect them! They protect you — lose them instead of dying when hit. 0 rings + 1 hit = respawn."],
+      ["Spin Dash", "Hold DOWN then release to launch forward (once unlocked)."],
+      ["Ground Pound", "Press DOWN in mid-air to slam down and shock nearby enemies (once unlocked)."],
+      ["Homing / Air Dash", "X, Z, gamepad B/X, or the on-screen ★ button — snaps to the nearest enemy, or dashes forward if none is close."],
+      ["Rings", "Collect them! They protect you — lose them instead of dying when hit."],
       ["Checkpoints", "Touching a flag saves your spot in the stage."],
       ["Boss Fights", "Wait for the boss to flash YELLOW, then jump on it, spin-dash it, or homing-attack it."],
-      ["Lava", "Never touch it — it burns! You'll respawn at your last checkpoint."],
+      ["Lava", "Never touch it — it burns! You respawn at your last checkpoint."],
       ["Pause", "ESC any time during a stage."],
+      ["Sound", "Tap the speaker icon (top-right) any time to enable/mute audio."],
     ];
-    let y = 78;
-    lines.forEach(([title, desc]) => {
-      this.add.text(50, y, title + ":", { fontSize: "14px", fill: "#66ccff", fontStyle: "bold" });
-      this.add.text(210, y, desc, { fontSize: "13px", fill: "#eee", wordWrap: { width: 540 } });
-      y += 34;
+
+    // Two columns on wide screens so this fits comfortably even on a short
+    // landscape phone; one column on anything narrower.
+    const twoCol = width >= 640;
+    const colWidth = twoCol ? width / 2 - 40 : width - 80;
+    const startY = height * 0.18;
+    const rowH = Math.max(30, Math.min(34, (height * 0.72) / Math.ceil(lines.length / (twoCol ? 2 : 1))));
+
+    lines.forEach(([title, desc], i) => {
+      const col = twoCol ? i % 2 : 0;
+      const row = twoCol ? Math.floor(i / 2) : i;
+      const colX = twoCol ? 40 + col * (width / 2) : 40;
+      const y = startY + row * rowH;
+      this.add.text(colX, y, title + ":", { fontSize: "13px", fill: "#66ccff", fontStyle: "bold" });
+      this.add.text(colX, y + 15, desc, { fontSize: "11px", fill: "#eee", wordWrap: { width: colWidth } });
     });
-    makeButton(this, 400, 566, "Back", () => sceneTransition(this, this.returnTo), { color: "#00ff00" });
+
+    makeButton(this, cx, height - 26, "Back", () => sceneTransition(this, this.returnTo), { color: "#00ff00" });
   }
 }
