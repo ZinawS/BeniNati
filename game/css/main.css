@@ -1,0 +1,53 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0a0a14;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: "Segoe UI", "Arial", sans-serif;
+  touch-action: manipulation;
+}
+
+#game-wrapper {
+  width: 100%;
+  height: 100%;
+  max-width: 100vw;
+  max-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#game-container {
+  border: 3px solid #2a4a6a;
+  border-radius: 8px;
+  box-shadow: 0 0 40px rgba(0, 160, 255, 0.4);
+  transition: box-shadow 0.3s, border-color 0.3s;
+  max-width: 100%;
+  max-height: 100%;
+  line-height: 0;
+}
+
+/* Toggled on the container by GameScene while a boss fight is active. */
+#game-container.boss-mode {
+  box-shadow: 0 0 60px rgba(255, 50, 0, 0.6);
+  border-color: #ff4444;
+}
+
+#game-container canvas {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+}
