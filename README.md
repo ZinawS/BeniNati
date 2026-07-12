@@ -34,6 +34,14 @@ you have that extension installed).
 > reference, but it does not have the profile system, gamepad/touch input, or
 > achievements described below.
 
+### Deploying (Netlify, or any static host)
+
+The repo root itself isn't the site — the game lives in `game/`. `netlify.toml` at
+the repo root already sets `publish = "game"`, so connecting this repo to Netlify
+(or Vercel/Cloudflare Pages/GitHub Pages with an equivalent "publish directory"
+setting) should work with no build command. If you're using a host that doesn't
+read `netlify.toml`, just point its publish/base directory at `game/` manually.
+
 ## Controls
 
 | Action | Keyboard | Gamepad | Touch |
