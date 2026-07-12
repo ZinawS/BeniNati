@@ -6,7 +6,6 @@
 import { Save } from "./save.js";
 
 let audioCtx = null;
-let unlocked = false;
 
 export function getAudioCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -21,9 +20,8 @@ export function getAudioCtx() {
  * Call this once at startup; it doesn't depend on any particular menu button.
  */
 export function initAudioUnlock() {
-  if (unlocked) return;
   const unlock = () => {
-    if (unlocked) return;
+    if (isUnlocked()) return;
     try {
       const ctx = getAudioCtx();
       if (ctx.state === "suspended") ctx.resume();
@@ -32,12 +30,24 @@ export function initAudioUnlock() {
       source.buffer = buffer;
       source.connect(ctx.destination);
       source.start(0);
-      unlocked = true;
     } catch (e) {}
   };
-  ["pointerdown", "touchstart", "keydown"].forEach((evt) => {
-    document.addEventListener(evt, unlock, { once: true, passive: true });
+  // Listen on both document AND the game container directly: some mobile
+  // browsers' touch handling on a canvas doesn't reliably bubble the way a
+  // plain page click does, so this isn't attached in just one place. Not
+  // `{ once: true }` — a suspended context can re-suspend on mobile (e.g.
+  // backgrounding the tab), so every subsequent gesture retries too.
+  const targets = [document, document.getElementById("game-container")].filter(Boolean);
+  targets.forEach((target) => {
+    ["pointerdown", "touchstart", "keydown"].forEach((evt) => {
+      target.addEventListener(evt, unlock, { passive: true });
+    });
   });
+}
+
+/** True once the AudioContext has actually reached the "running" state. */
+export function isUnlocked() {
+  return !!audioCtx && audioCtx.state === "running";
 }
 
 function isEnabled(kind) {
@@ -82,6 +92,7 @@ export const SFX = {
   achievement: () => [700, 1000, 1400].forEach((f, i) => beep(f, 0.18, "triangle", 0.16, i * 0.07)),
   uiClick: () => beep(440, 0.05, "triangle", 0.08),
   uiHover: () => beep(660, 0.03, "sine", 0.04),
+  land: () => beep(110, 0.08, "sine", 0.1),
 };
 
 export function vibrate(duration = 200, weak = 0.4, strong = 0.6) {

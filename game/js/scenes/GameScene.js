@@ -5,6 +5,7 @@ import { SFX, vibrate, Music } from "../systems/audio.js";
 import { InputController } from "../systems/input.js";
 import { checkAchievements } from "../systems/achievements.js";
 import { sceneTransition, fadeInScene } from "../ui/uiHelpers.js";
+import { addSoundIndicator } from "../ui/soundIndicator.js";
 
 const HOMING_RADIUS = 280;
 
@@ -110,6 +111,7 @@ export class GameScene extends Phaser.Scene {
     this.scoreText = this.add.text(16, 16, "", { fontSize: "18px", fill: "#fff", fontStyle: "bold", backgroundColor: "#000" }).setScrollFactor(0);
     this.scoreText.setPadding(10, 10, 10, 10);
     this.updateHUD();
+    addSoundIndicator(this, 764, 56);
 
     const save = Save.current();
     if (save.abilities.shield) {
@@ -386,6 +388,13 @@ export class GameScene extends Phaser.Scene {
     const onGround = this.player.body.touching.down;
     this.player.setDragX(wasOnIce ? 60 : wasOnMud ? 2200 : 800);
 
+    // Arcade physics zeroes velocity.y on the same step it resolves a ground
+    // collision, so "fall speed at impact" has to come from last frame's
+    // velocity (captured below), not this frame's.
+    if (!this.wasOnGroundLastFrame && onGround && (this.prevVelY || 0) > 500) {
+      this.landingEffect();
+    }
+
     if (input.left) { this.player.setAccelerationX(-accel); this.player.setFlipX(true); this.facing = -1; }
     else if (input.right) { this.player.setAccelerationX(accel); this.player.setFlipX(false); this.facing = 1; }
     else this.player.setAccelerationX(0);
@@ -494,6 +503,17 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.player.y > 580) this.die();
+
+    this.prevVelY = this.player.body.velocity.y;
+    this.wasOnGroundLastFrame = onGround;
+  }
+
+  landingEffect() {
+    SFX.land();
+    const particles = this.add.particles("particle");
+    const emitter = particles.createEmitter({ tint: this.theme.groundTop, speed: { min: 40, max: 120 }, angle: { min: 200, max: 340 }, lifespan: 300, quantity: 8, scale: { start: 0.7, end: 0 }, on: false });
+    emitter.explode(8, this.player.x, this.player.y + 14);
+    this.time.delayedCall(350, () => particles.destroy());
   }
 
   recordStat(mutate) {

@@ -1,6 +1,7 @@
 import { VILLAIN, WORLDS } from "../config/worlds.js";
 import { getAudioCtx, initAudioUnlock } from "../systems/audio.js";
 import { makeButton, sceneTransition, fadeInScene } from "../ui/uiHelpers.js";
+import { addSoundIndicator } from "../ui/soundIndicator.js";
 
 export class MainMenu extends Phaser.Scene {
   constructor() { super("MainMenu"); }
@@ -8,6 +9,7 @@ export class MainMenu extends Phaser.Scene {
   create() {
     initAudioUnlock();
     fadeInScene(this);
+    addSoundIndicator(this);
 
     this.add.text(400, 110, "NATI & BENIYAS'S", { fontSize: "26px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
     const title = this.add.text(400, 155, "SPEEDY ADVENTURE!", { fontSize: "40px", fill: "#0066ff", fontStyle: "bold", stroke: "#fff", strokeThickness: 4 }).setOrigin(0.5);
