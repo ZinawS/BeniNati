@@ -4,6 +4,35 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is
 [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] — Fixed Hostinger 403, real melodic soundtrack
+
+### Fixed
+- **403 Forbidden on Hostinger (and any Apache/LiteSpeed shared host).** Root
+  cause: `index.html` lived in `game/`, not the repository root, so the
+  actual server document root had no index file — Apache's standard,
+  secure-by-default behavior for a directory with no index and directory
+  listing disabled is exactly a 403, not a 404. Fixed by moving `index.html`,
+  `css/`, and `js/` to the repository root, so any static host (Hostinger,
+  Netlify, GitHub Pages, a plain nginx/Apache box) serves the site correctly
+  by just hosting the repo contents as-is, no publish-directory
+  configuration required. Also added a `.htaccess` with an explicit
+  `DirectoryIndex index.html` and disabled directory listings as extra
+  insurance on shared hosting.
+- `netlify.toml` updated accordingly (`publish = "."` — the repo root already
+  works with Netlify's default, this just makes it explicit).
+
+### Changed
+- Replaced the ambient-pad-only background music with a real generative loop
+  per world: plucked melodic arpeggio, pulsing bass, and light percussion
+  (noise "hat" + synth "kick"), precision-scheduled against the AudioContext
+  clock instead of individual timers. Each world has its own scale and tempo
+  (bright major pentatonic for Green Hills/Ocean/Sky, darker minor for
+  Volcano/Crystal Cave/Haunted Forest/Cogsworth's Fortress) so worlds are
+  musically distinct, not just transposed copies of one pad. Boss fights
+  raise the tempo and thicken the percussion instead of just adding a pulse
+  layer. See `docs/ARCHITECTURE.md` for the implementation details and the
+  README for the honest scope tradeoff (generated, not composed/recorded).
+
 ## [1.3.0] — True edge-to-edge landscape fill, split thumb controls, sound modal
 
 ### Changed

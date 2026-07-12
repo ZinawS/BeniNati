@@ -104,17 +104,47 @@ export function vibrate(duration = 200, weak = 0.4, strong = 0.6) {
   } catch (e) {}
 }
 
-// ----------------------- Adaptive ambient music -----------------------
-// A continuous generative pad (no audio files): two detuned sine oscillators a
-// fifth apart, slow LFO on the master gain for movement, one root frequency per
-// world theme so each world sounds distinct. setBossIntensity(true) layers in a
-// rhythmic pulse for boss fights; everything crossfades rather than cutting.
-const THEME_ROOTS = [130.81, 196.0, 174.61, 220.0, 98.0, 146.83, 110.0, 164.81, 87.31];
+// ----------------------- Adaptive soundtrack -----------------------
+// A real generative loop per world (no audio files) instead of a static pad:
+// a plucked arpeggio (melody), a pulsing bass note, and light percussion
+// (noise "hat" + synthesized "kick"), all precision-scheduled against the
+// AudioContext clock rather than setTimeout'd individually (the standard
+// technique for drift-free Web Audio rhythm — see Chris Wilson's "A Tale of
+// Two Clocks"). Each world has its own root note, scale, and tempo so it
+// sounds distinct; setBossIntensity(true) speeds the tempo up and thickens
+// the percussion for boss fights, picked up at the start of the next loop
+// rather than jarring the timing mid-bar.
+function semitoneToFreq(root, semitones) {
+  return root * Math.pow(2, semitones / 12);
+}
+
+const MAJOR_PENTATONIC = [0, 2, 4, 7, 9];
+const MINOR_PENTATONIC = [0, 3, 5, 7, 10];
+const NATURAL_MINOR = [0, 2, 3, 5, 7, 8, 10];
+
+const THEME_CONFIGS = [
+  { root: 261.63, scale: MAJOR_PENTATONIC, tempo: 128 }, // Green Hills
+  { root: 293.66, scale: MAJOR_PENTATONIC, tempo: 118 }, // Ocean Kingdom
+  { root: 220.0, scale: MINOR_PENTATONIC, tempo: 110 }, // Snow Mountains
+  { root: 329.63, scale: MAJOR_PENTATONIC, tempo: 142 }, // Sky Kingdom
+  { root: 174.61, scale: MINOR_PENTATONIC, tempo: 132 }, // Volcano World
+  { root: 246.94, scale: NATURAL_MINOR, tempo: 100 }, // Crystal Cave
+  { root: 196.0, scale: NATURAL_MINOR, tempo: 92 }, // Haunted Forest
+  { root: 233.08, scale: MINOR_PENTATONIC, tempo: 136 }, // Cyber City
+  { root: 164.81, scale: NATURAL_MINOR, tempo: 124 }, // Cogsworth's Fortress
+];
+
+const ARP_PATTERN = [0, 2, 4, 2, 1, 4, 3, 2];
+const BASS_PATTERN = [0, -1, -1, -1, 0, -1, 2, -1]; // -1 = rest
 
 class MusicSystem {
   constructor() {
-    this.nodes = null;
-    this.pulse = null;
+    this.master = null;
+    this.config = null;
+    this.playing = false;
+    this.intense = false;
+    this.timer = null;
+    this.noiseBuffer = null;
   }
 
   playTheme(themeIndex) {
@@ -123,85 +153,120 @@ class MusicSystem {
     try {
       const ctx = getAudioCtx();
       if (ctx.state === "suspended") ctx.resume();
-      const root = THEME_ROOTS[themeIndex % THEME_ROOTS.length];
-
-      const master = ctx.createGain();
-      master.gain.value = 0;
-      master.connect(ctx.destination);
-
-      const osc1 = ctx.createOscillator();
-      osc1.type = "sine";
-      osc1.frequency.value = root;
-      const osc2 = ctx.createOscillator();
-      osc2.type = "sine";
-      osc2.frequency.value = root * 1.5;
-      osc2.detune.value = 4;
-
-      const g1 = ctx.createGain(); g1.gain.value = 0.05;
-      const g2 = ctx.createGain(); g2.gain.value = 0.035;
-      osc1.connect(g1).connect(master);
-      osc2.connect(g2).connect(master);
-
-      const lfo = ctx.createOscillator();
-      lfo.type = "sine";
-      lfo.frequency.value = 0.08;
-      const lfoGain = ctx.createGain();
-      lfoGain.gain.value = 0.02;
-      lfo.connect(lfoGain).connect(master.gain);
-
-      osc1.start(); osc2.start(); lfo.start();
-      master.gain.setTargetAtTime(0.5, ctx.currentTime, 1.2);
-
-      this.nodes = { ctx, master, osc1, osc2, lfo };
+      this.config = THEME_CONFIGS[themeIndex % THEME_CONFIGS.length];
+      this.master = ctx.createGain();
+      this.master.gain.value = 0;
+      this.master.connect(ctx.destination);
+      this.master.gain.setTargetAtTime(0.55, ctx.currentTime, 1.0);
+      this.playing = true;
+      this._scheduleLoop();
     } catch (e) {}
   }
 
+  /** Picked up at the start of the next loop, not forced mid-bar — avoids an audible timing jump. */
   setBossIntensity(active) {
-    if (!this.nodes) return;
-    const { ctx, master, osc1 } = this.nodes;
-    try {
-      if (active && !this.pulse) {
-        const pulseOsc = ctx.createOscillator();
-        pulseOsc.type = "sawtooth";
-        pulseOsc.frequency.value = osc1.frequency.value / 2;
-        const pulseGain = ctx.createGain();
-        pulseGain.gain.value = 0;
-        pulseOsc.connect(pulseGain).connect(master);
+    this.intense = active;
+    if (this.master) {
+      const ctx = getAudioCtx();
+      this.master.gain.setTargetAtTime(active ? 0.68 : 0.55, ctx.currentTime, 0.8);
+    }
+  }
 
-        const gate = ctx.createOscillator();
-        gate.type = "square";
-        gate.frequency.value = 2;
-        const gateGain = ctx.createGain();
-        gateGain.gain.value = 0.04;
-        gate.connect(gateGain).connect(pulseGain.gain);
+  _noise(ctx) {
+    if (this.noiseBuffer) return this.noiseBuffer;
+    const len = Math.floor(ctx.sampleRate * 0.2);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    this.noiseBuffer = buf;
+    return buf;
+  }
 
-        pulseOsc.start();
-        gate.start();
-        this.pulse = { pulseOsc, gate };
-      } else if (!active && this.pulse) {
-        const stopAt = ctx.currentTime + 0.3;
-        this.pulse.pulseOsc.stop(stopAt);
-        this.pulse.gate.stop(stopAt);
-        this.pulse = null;
+  _pluck(ctx, freq, time, dur, vol, type) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(vol, time + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+    osc.connect(gain).connect(this.master);
+    osc.start(time);
+    osc.stop(time + dur + 0.05);
+  }
+
+  _hat(ctx, time, vol) {
+    const noise = ctx.createBufferSource();
+    noise.buffer = this._noise(ctx);
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    filter.type = "highpass";
+    filter.frequency.value = 6000;
+    gain.gain.setValueAtTime(vol, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+    noise.connect(filter).connect(gain).connect(this.master);
+    noise.start(time);
+    noise.stop(time + 0.06);
+  }
+
+  _kick(ctx, time) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(150, time);
+    osc.frequency.exponentialRampToValueAtTime(40, time + 0.12);
+    gain.gain.setValueAtTime(0.25, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+    osc.connect(gain).connect(this.master);
+    osc.start(time);
+    osc.stop(time + 0.16);
+  }
+
+  _scheduleLoop() {
+    if (!this.playing || !this.master || !this.config) return;
+    const ctx = getAudioCtx();
+    const cfg = this.config;
+    const bpm = cfg.tempo * (this.intense ? 1.15 : 1);
+    const stepDur = 60 / bpm / 2; // 8th notes
+    const steps = ARP_PATTERN.length;
+    const startTime = ctx.currentTime + 0.05;
+
+    for (let i = 0; i < steps; i++) {
+      const t = startTime + i * stepDur;
+
+      const leadDeg = cfg.scale[ARP_PATTERN[i] % cfg.scale.length];
+      this._pluck(ctx, semitoneToFreq(cfg.root * 2, leadDeg), t, stepDur * 0.85, 0.09, "sine");
+
+      const bassStep = BASS_PATTERN[i];
+      if (bassStep >= 0) {
+        const bassDeg = cfg.scale[bassStep % cfg.scale.length];
+        this._pluck(ctx, semitoneToFreq(cfg.root / 2, bassDeg), t, stepDur * 1.6, 0.13, "triangle");
       }
-    } catch (e) {}
+
+      if (this.intense || i % 2 === 0) this._hat(ctx, t, this.intense ? 0.05 : 0.03);
+      if (i === 0 || (this.intense && i === 4)) this._kick(ctx, t);
+    }
+
+    const loopMs = steps * stepDur * 1000;
+    this.timer = setTimeout(() => this._scheduleLoop(), Math.max(50, loopMs - 30));
   }
 
   stop(fadeSeconds = 0.6) {
-    if (!this.nodes) return;
-    const { ctx, master, osc1, osc2, lfo } = this.nodes;
+    this.playing = false;
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    if (!this.master) return;
     try {
+      const ctx = getAudioCtx();
       const now = ctx.currentTime;
+      const master = this.master;
       master.gain.cancelScheduledValues(now);
       master.gain.setTargetAtTime(0, now, fadeSeconds / 3);
-      const stopAt = now + fadeSeconds;
-      [osc1, osc2, lfo].forEach((o) => { try { o.stop(stopAt); } catch (e) {} });
-      if (this.pulse) {
-        try { this.pulse.pulseOsc.stop(stopAt); this.pulse.gate.stop(stopAt); } catch (e) {}
-        this.pulse = null;
-      }
+      setTimeout(() => { try { master.disconnect(); } catch (e) {} }, (fadeSeconds + 0.5) * 1000);
     } catch (e) {}
-    this.nodes = null;
+    this.master = null;
   }
 }
 

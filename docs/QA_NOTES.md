@@ -7,7 +7,7 @@ was run against a live page on real devices. Treat "Verified" as real, and
 
 ## Verified (automated, reproducible)
 
-- **JS syntax** — every file under `game/js/` parses cleanly as an ES module
+- **JS syntax** — every file under `js/` parses cleanly as an ES module
   (`node --input-type=module --check`).
 - **Import graph resolves** — every `import`/`export` across all modules resolves to
   a real, correctly-named export, re-verified after the UI/audio/mobile rework.
@@ -24,7 +24,7 @@ was run against a live page on real devices. Treat "Verified" as real, and
 Reproduce the import-graph check:
 
 ```bash
-cd game/js
+cd js
 cat > /tmp/phaser_stub.mjs << 'EOF'
 globalThis.Phaser = {
   Scene: class Scene {},
@@ -33,9 +33,10 @@ globalThis.Phaser = {
   Utils: { Array: { GetRandom: (a) => a[0] } },
   AUTO: 1,
   Game: class Game {},
-  Scale: { FIT: 1, CENTER_BOTH: 1 },
+  Scale: { FIT: 1, CENTER_BOTH: 1, RESIZE: 1 },
 };
 globalThis.navigator = { getGamepads: () => [], maxTouchPoints: 0 };
+globalThis.window = globalThis;
 globalThis.document = {
   getElementById: () => ({ classList: { add(){}, remove(){}, toggle(){} }, addEventListener(){} }),
   createElement: () => ({ getContext: () => ({}) }),

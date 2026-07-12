@@ -10,12 +10,12 @@ Transformation for the final fight.
 
 ## Play it
 
-The game lives in [`game/`](game/) and uses ES modules, which browsers refuse to load
-over the `file://` protocol (a CORS restriction on `import`). Serve the folder with any
-static file server:
+`index.html` is at the repository root, so the site's root URL is the game — no
+subfolder in the path. It uses ES modules, which browsers refuse to load over the
+`file://` protocol (a CORS restriction on `import`), so for local development serve
+the repo root with any static file server:
 
 ```bash
-cd game
 python3 -m http.server 8000
 # then open http://localhost:8000 in your browser
 ```
@@ -23,24 +23,34 @@ python3 -m http.server 8000
 or, if you have Node installed:
 
 ```bash
-npx serve game
+npx serve .
 ```
 
-or, in VS Code, right-click `game/index.html` and choose **Open with Live Server** (if
-you have that extension installed).
+or, in VS Code, right-click `index.html` and choose **Open with Live Server** (if you
+have that extension installed).
 
 > A legacy single-file version that runs by double-clicking the HTML file (no server
 > needed) is kept at [`legacy/game-classic.html`](legacy/game-classic.html) for
 > reference, but it does not have the profile system, gamepad/touch input, or
 > achievements described below.
 
-### Deploying (Netlify, or any static host)
+## Deploying to shared/static hosting (Hostinger, etc.)
 
-The repo root itself isn't the site — the game lives in `game/`. `netlify.toml` at
-the repo root already sets `publish = "game"`, so connecting this repo to Netlify
-(or Vercel/Cloudflare Pages/GitHub Pages with an equivalent "publish directory"
-setting) should work with no build command. If you're using a host that doesn't
-read `netlify.toml`, just point its publish/base directory at `game/` manually.
+Upload the contents of this repository to your host's public web folder (on
+Hostinger, that's `public_html`) — `index.html`, `css/`, `js/`, and everything else
+can go straight in, no subfolder. Because `index.html` sits at the root, the site
+loads automatically at your domain's root URL.
+
+If you get a **403 Forbidden** on the root URL, it almost always means `index.html`
+isn't actually sitting directly in the folder your domain points at — a common
+mistake is uploading this repo as a nested folder (e.g. `public_html/project-name/`)
+instead of uploading its *contents* into `public_html/` directly. A `.htaccess` is
+included with an explicit `DirectoryIndex index.html` and directory-listing disabled
+as extra insurance, but it can't fix files being in the wrong folder.
+
+Netlify/Vercel/Cloudflare Pages/GitHub Pages all work the same way — point them at
+the repo root with no build command. `netlify.toml` makes that explicit for Netlify,
+but since `index.html` is at the root now, it isn't strictly required.
 
 ## Controls
 
@@ -90,8 +100,9 @@ defeated, times respawned) and a small set of achievements, viewable from the
 ## Accessibility & options
 
 - **Sound Effects** and **Music** have independent on/off toggles in Settings.
-  Background music is continuous, generative, and adapts — it intensifies during
-  boss fights — see `docs/ARCHITECTURE.md` for how.
+  Every world has its own generated melodic theme (arpeggio + bass + light
+  percussion, distinct scale and tempo per world) that speeds up and thickens
+  for boss fights — see `docs/ARCHITECTURE.md` for how it's built.
 - **Encouraging messages** (on by default) show a short, friendly tip whenever you
   respawn after a mistake — can be turned off in Settings.
 - **Nightmare Mode** unlocks after finishing the whole story: faster enemies and
@@ -112,14 +123,14 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full module map. Shor
 version:
 
 ```
-game/
-├── index.html          entry point
-├── css/main.css         layout + boss-fight glow effect
-└── js/
-    ├── main.js           Phaser game config, scene registration
-    ├── config/           world/level/theme/ability data (no game logic)
-    ├── systems/          save/profiles, audio, input, achievements (no Phaser Scene code)
-    └── scenes/           one file per Phaser.Scene
+index.html              entry point (repository root — see "Deploying" above)
+css/main.css             layout + boss-fight glow effect
+js/
+├── main.js               Phaser game config, scene registration
+├── config/               world/level/theme/ability data (no game logic)
+├── systems/              save/profiles, audio, input, achievements (no Phaser Scene code)
+├── ui/                    shared button/modal/layout helpers (no game logic)
+└── scenes/               one file per Phaser.Scene
 ```
 
 ## What this project intentionally does NOT include
@@ -130,10 +141,14 @@ promise:
 - No real network leaderboards (would need a backend); "Stats" are local per-profile.
 - No day/night lighting pipeline or full weather simulation — worlds have ambient
   particle effects (snow, embers, bubbles, etc.) instead.
-- No music score or recorded sound effects — all audio is synthesized with the Web
-  Audio API.
-- No bundler/build step — plain ES modules, intentionally, so `game/` stays a static
-  folder you can host anywhere.
+- No recorded/licensed music or voice-acted sound effects — everything audible is
+  synthesized live with the Web Audio API. The generative soundtrack is a genuine
+  step up from a single ambient pad (real melody, bass, and percussion per world),
+  but it is not a substitute for a composed/recorded score; if you have licensed
+  or commissioned audio tracks you'd like used instead, that's a straightforward
+  swap in `systems/audio.js`.
+- No bundler/build step — plain ES modules, intentionally, so this stays a static
+  site you can host anywhere by uploading it as-is.
 - Original characters throughout (Professor Cogsworth, Momo, Coral, Frost, Gale,
   Ember, Pip, Wisp, Byte) — no Sega-owned names or likenesses, so this is safe to
   share even though it's inspired by classic high-speed platformers.

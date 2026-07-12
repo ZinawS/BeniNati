@@ -2,8 +2,11 @@
 
 ## Module map
 
+`index.html` and `css/` sit at the repository root alongside this `js/` tree — see
+the README's "Deploying" section for why (it fixed a real 403 on shared hosting).
+
 ```
-game/js/
+js/
 ├── main.js                  Phaser.Game config; imports and registers every scene.
 ├── config/                  Pure data. No Phaser references, no side effects beyond
 │   │                        building the exported constants. Safe to import from
@@ -31,11 +34,16 @@ game/js/
 │   │                        by every menu scene so they share one visual language.
 │   ├── uiHelpers.js           makeButton() (hover/press feedback + click sound),
 │   │                        addHoverFeedback() (same, for non-text game objects),
-│   │                        sceneTransition()/fadeInScene() (camera fade cuts).
-│   └── orientationGuard.js    Shows a DOM "please rotate" overlay when a touch
-│                              device is held in portrait — lives outside the Phaser
-│                              canvas entirely, so it works regardless of which scene
-│                              is active.
+│   │                        sceneTransition()/fadeInScene() (camera fade cuts),
+│   │                        screenAnchors() (layout relative to real screen size).
+│   ├── orientationGuard.js    Shows a DOM "please rotate" overlay when a touch
+│   │                        device is held in portrait — lives outside the Phaser
+│   │                        canvas entirely, so it works regardless of which scene
+│   │                        is active.
+│   ├── soundIndicator.js      Persistent tappable 🔊/🔈/🔇 HUD icon — a guaranteed
+│   │                        manual audio-unlock fallback plus a visible mute toggle.
+│   └── soundSetupModal.js     Blocking "enable sound" modal shown once on first
+│                              touch-device launch; reachable again from Settings.
 └── scenes/                  One Phaser.Scene subclass per file. This is the only layer
     ├── PreloadScene.js       that imports Phaser features (Scene, Math, Input, Utils).
     ├── MainMenu.js
@@ -156,14 +164,20 @@ Everything audible is generated at runtime with the Web Audio API in
 
 - **SFX** — short oscillator "beeps" with per-action frequency/envelope (jump, ring,
   hurt, boss-hit, achievement, UI click/hover, etc.).
-- **Music** (`Music`, a module-level singleton) — a continuous generative pad: two
-  detuned sine oscillators a fifth apart plus a slow LFO on the master gain, one root
-  frequency per world theme so each world sounds distinct. `Music.playTheme(themeIndex)`
-  crossfades in on `GameScene.create()`; `Music.setBossIntensity(true)` layers in a
-  rhythmic sawtooth pulse for boss fights; `Music.stop()` fades out on scene
-  `shutdown`. This is deliberately simple (no composed/recorded score, since there
-  are no audio assets in this project) but it is real, continuous, adaptive
-  background music, not silence.
+- **Music** (`Music`, a module-level singleton) — a generative loop per world: a
+  plucked arpeggio (melody), a pulsing bass note, and light percussion (filtered
+  noise "hat" + a synthesized sine-sweep "kick"), scheduled precisely against the
+  `AudioContext` clock rather than with individual `setTimeout`s (drift-free —
+  see Chris Wilson's "A Tale of Two Clocks" for why that matters for anything
+  rhythmic in Web Audio). Each world has its own root note / scale
+  (`THEME_CONFIGS` — major or minor pentatonic, or natural minor) and tempo, so
+  worlds sound distinct rather than just transposed. `Music.playTheme(themeIndex)`
+  starts the loop on `GameScene.create()`; `Music.setBossIntensity(true)` raises
+  the tempo ~15% and thickens the percussion, picked up at the start of the next
+  loop iteration rather than jarring the timing mid-bar; `Music.stop()` fades out
+  on scene `shutdown`. This is a genuine step up from a static ambient pad, but
+  it's still generated, not composed/recorded — see the README's "What this
+  project intentionally does NOT include" for that tradeoff.
 - **Autoplay/mobile unlock** — `initAudioUnlock()` (called once from `main.js`)
   attaches one-time `pointerdown`/`touchstart`/`keydown` listeners that create and
   resume the shared `AudioContext` and play a one-sample silent buffer, which is the
