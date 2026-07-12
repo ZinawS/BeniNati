@@ -1,0 +1,13 @@
+# Belt-and-suspenders for shared Apache/LiteSpeed hosting (e.g. Hostinger).
+# The actual fix for the 403 was moving index.html to the repo root — most
+# hosts already default DirectoryIndex to index.html — but this makes it
+# explicit rather than relying on that default, and disables directory
+# listings so /js/ or /css/ can't be browsed directly.
+DirectoryIndex index.html
+
+Options -Indexes
+
+<IfModule mod_mime.c>
+  AddType application/javascript .js
+  AddType text/css .css
+</IfModule>

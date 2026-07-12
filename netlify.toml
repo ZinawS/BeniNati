@@ -1,2 +1,5 @@
+# index.html lives at the repo root, so Netlify's default (publish the repo
+# root) already works with zero config. This file is kept only to make that
+# explicit rather than relying on an implicit default.
 [build]
-  publish = "game"
+  publish = "."
