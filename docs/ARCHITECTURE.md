@@ -5,6 +5,13 @@
 `index.html` and `css/` sit at the repository root alongside this `js/` tree — see
 the README's "Deploying" section for why (it fixed a real 403 on shared hosting).
 
+**This `js/` tree is source, not what ships.** `index.html` loads `dist/bundle.js` —
+`js/main.js` and everything it imports, bundled into one classic (non-module) script
+by esbuild (`npm run build`). The module structure below is for maintainability
+only; browsers never load these files directly. See the README's "Development"
+section for why (smart TV / old embedded browser compatibility) and the rebuild
+step you need after editing anything here.
+
 ```
 js/
 ├── main.js                  Phaser.Game config; imports and registers every scene.

@@ -4,6 +4,34 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is
 [Semantic Versioning](https://semver.org/).
 
+## [1.6.0] — Bundled build (fixes Samsung TV / old-browser loading), touch layout cleanup
+
+### Fixed
+- **Wouldn't load at all on a Samsung TV browser, no visible error.** Root
+  cause: the site's entry point was `<script type="module">`, and smart TV
+  browsers run embedded, infrequently-updated engines that frequently have
+  partial-to-no support for ES modules. Fixed by bundling `js/main.js` and
+  everything it imports into a single classic script (`dist/bundle.js`, via
+  esbuild) — `index.html` now loads that instead. This is a strictly more
+  broadly compatible way to ship JavaScript; bonus side effect: the game now
+  also opens directly from `file://` with no local server needed, since a
+  classic script has none of `type="module"`'s CORS restriction on `import`.
+  See `docs/QA_NOTES.md` for the full writeup.
+- Touch controls: the arrow triangles were rendering visibly off-center
+  within their circles (asymmetric point coordinates — apex at +15, base at
+  -12, not mirrored). Fixed with symmetric points.
+- Touch controls redesigned into one aligned bottom strip: both button
+  clusters now share the same Y baseline and panel height, with buttons
+  evenly spaced within each — replacing an earlier layout that stacked
+  up/down vertically with the action button floating separately above,
+  which read as misaligned.
+
+### Added
+- `npm run build` (esbuild) — see the README's new "Development" section.
+  `dist/bundle.js` is committed to the repo, so deploying never requires
+  anyone, including a shared host with no build pipeline, to run a build
+  step themselves; only editing `js/` source requires rebuilding.
+
 ## [1.5.0] — Fixed mobile display cutoff, real volume control
 
 ### Fixed

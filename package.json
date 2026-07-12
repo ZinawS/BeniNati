@@ -1,0 +1,12 @@
+{
+  "name": "nati-beniyas-speedy-adventure",
+  "private": true,
+  "version": "1.5.0",
+  "description": "A browser platform-adventure game built with Phaser 3.",
+  "scripts": {
+    "build": "esbuild js/main.js --bundle --outfile=dist/bundle.js --target=es2017 --format=iife"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2"
+  }
+}

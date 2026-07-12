@@ -18,6 +18,17 @@
         <p>This game plays best sideways — turn your device to landscape to continue.</p>
       </div>
     </div>
-    <script type="module" src="js/main.js"></script>
+    <!--
+      Bundled from js/ (ES modules, easier to maintain) into a single
+      classic script via esbuild — NOT type="module". Smart TV browsers
+      (Samsung/LG etc.) and other older embedded WebKit engines frequently
+      have partial-to-no support for <script type="module">, which is a
+      likely reason the game wouldn't load at all on a Samsung TV browser
+      with no visible error. A plain bundled script has none of that risk,
+      and as a bonus works over file:// too (no more "needs a local server"
+      caveat for local testing). Run `npm run build` after editing js/ to
+      regenerate dist/bundle.js — see README.md.
+    -->
+    <script src="dist/bundle.js"></script>
   </body>
 </html>

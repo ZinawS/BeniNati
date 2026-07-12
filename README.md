@@ -1,8 +1,10 @@
 # Nati & Beniyas's Speedy Adventure
 
 A browser-based 2D platform-adventure game built with [Phaser 3](https://phaser.io/). No
-build step, no external art or audio assets — every sprite and sound effect is generated
-procedurally at runtime, so the whole game is just static HTML/CSS/JS.
+external art or audio assets — every sprite and sound effect is generated procedurally
+at runtime. The deployed site is static HTML/CSS/JS with no server-side anything; a
+small bundling step (see "Development" below) exists purely for browser compatibility,
+not because the game needs a backend.
 
 Rescue your friends from **Professor Cogsworth** across 9 themed worlds, unlocking a new
 movement ability every time you beat a world's boss, and power up into a Super
@@ -11,28 +13,45 @@ Transformation for the final fight.
 ## Play it
 
 `index.html` is at the repository root, so the site's root URL is the game — no
-subfolder in the path. It uses ES modules, which browsers refuse to load over the
-`file://` protocol (a CORS restriction on `import`), so for local development serve
-the repo root with any static file server:
+subfolder in the path, and no server required: `index.html` loads `dist/bundle.js`
+(a plain, pre-built classic `<script>`, already committed to the repo) rather than
+raw ES modules, so it works straight from `file://` — just open `index.html`.
+
+If you'd rather serve it (e.g. to test exactly like a real deploy):
 
 ```bash
 python3 -m http.server 8000
 # then open http://localhost:8000 in your browser
 ```
 
-or, if you have Node installed:
+> A legacy single-file version from earlier in this project's history is kept at
+> [`legacy/game-classic.html`](legacy/game-classic.html) for reference, but it's
+> missing everything from the profile system onward — not needed for normal use,
+> since the root `index.html` now works standalone the same way.
+
+## Development
+
+The source lives in `js/` as ES modules (see `docs/ARCHITECTURE.md`) — that's what
+you edit. `index.html` doesn't load it directly, though: it loads `dist/bundle.js`,
+a single classic script produced from `js/main.js` by [esbuild](https://esbuild.github.io/).
+
+**Why bundle instead of loading the ES modules directly**, like earlier versions of
+this project did: `<script type="module">` isn't reliably supported on older/embedded
+browser engines — notably smart TV browsers (this surfaced as the game not loading at
+all, with no visible error, on a Samsung TV browser). A bundled classic script has no
+such dependency and works essentially everywhere, as a bonus also removing the need for
+a local server during development (no more CORS-on-`import` restriction to work around).
+
+If you change anything under `js/`, rebuild before testing or deploying:
 
 ```bash
-npx serve .
+npm install   # once
+npm run build # regenerates dist/bundle.js — commit it along with your source changes
 ```
 
-or, in VS Code, right-click `index.html` and choose **Open with Live Server** (if you
-have that extension installed).
-
-> A legacy single-file version that runs by double-clicking the HTML file (no server
-> needed) is kept at [`legacy/game-classic.html`](legacy/game-classic.html) for
-> reference, but it does not have the profile system, gamepad/touch input, or
-> achievements described below.
+`dist/bundle.js` is committed to the repo (not `.gitignore`d) specifically so that
+deploying never requires anyone — including a shared host with no build pipeline,
+like Hostinger — to run a build step themselves.
 
 ## Deploying to shared/static hosting (Hostinger, etc.)
 
@@ -149,8 +168,12 @@ promise:
   but it is not a substitute for a composed/recorded score; if you have licensed
   or commissioned audio tracks you'd like used instead, that's a straightforward
   swap in `systems/audio.js`.
-- No bundler/build step — plain ES modules, intentionally, so this stays a static
-  site you can host anywhere by uploading it as-is.
+- No server-side anything, no framework — a small esbuild bundling step exists
+  purely to turn the ES module source into a classic script for old/embedded
+  browser compatibility (see "Development" above), not because the game needs
+  a backend. The *deployed* site is still just static files you host anywhere
+  by uploading them as-is — the build output is committed, so nobody deploying
+  the site ever needs to run a build step themselves.
 - Original characters throughout (Professor Cogsworth, Momo, Coral, Frost, Gale,
   Ember, Pip, Wisp, Byte) — no Sega-owned names or likenesses, so this is safe to
   share even though it's inspired by classic high-speed platformers.

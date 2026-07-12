@@ -20,6 +20,10 @@ was run against a live page on real devices. Treat "Verified" as real, and
 - **Extraction fidelity** — `config/worlds.js` was diffed structurally against the
   original monolithic file's level data to confirm no tile was dropped or corrupted
   during the file-split refactor.
+- **Bundle builds and parses cleanly** — `npm run build` succeeds, and the resulting
+  `dist/bundle.js` passes `node --check`. Confirmed it references the global
+  `Phaser` (22 call sites) rather than trying to bundle Phaser itself, which is the
+  expected behavior since it's loaded separately via the CDN `<script>` tag.
 
 Reproduce the import-graph check:
 
@@ -114,6 +118,29 @@ change, the next things to check, in order:
    to the phone) to see the actual error.
 3. Whether the device is in Low Power Mode or has a restrictive "Prevent
    Cross-Site Tracking"/content-blocker setup that could affect page scripts.
+
+## Known issue history: wouldn't load at all on a Samsung TV browser
+
+Reported: the game wouldn't open on a Samsung TV's built-in web browser, with no
+error visible to the user (TV browsers generally don't expose a console). Most
+likely cause: the site's only entry point was `<script type="module" src="js/main.js">`.
+Smart TV browsers run embedded, infrequently-updated engines — some Samsung Tizen
+versions are based on WebKit builds old enough to have partial or no support for
+`type="module"` — and a browser that can't execute the entry script produces
+exactly this symptom: a blank/non-loading page with nothing for the user to debug.
+
+This wasn't fixable by patching around the edges — ES modules were the actual
+distribution format being shipped to the browser. Fixed by bundling `js/main.js`
+and everything it imports into a single classic script (`dist/bundle.js`, via
+esbuild, targeting ES2017) and having `index.html` load that instead. A classic
+`<script>` has no comparable compatibility gap; this is by far the most broadly
+supported way to ship JavaScript to a browser, smart TV or otherwise.
+
+Not verified on the actual Samsung TV — same caveat as everything else in this
+file — but this addresses the specific, well-documented mechanism (not a guess),
+and `docs/ARCHITECTURE.md` documents the rebuild step needed to keep
+`dist/bundle.js` in sync with `js/` going forward, so this fix doesn't quietly
+regress the next time source changes.
 
 ## Known issue history: mobile display cut off / controls unreachable
 
