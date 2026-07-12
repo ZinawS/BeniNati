@@ -110,6 +110,12 @@ Each world has 2 normal stages and 1 boss stage. The final boss transforms your
 character partway through the fight — abilities and story context for that beat are
 described in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
+Fighting isn't the only way through a boss stage: every boss arena has an exit past
+the boss's patrol range — get past it (skill-based, since it still hits you like
+normal if you're not careful) and you skip the fight, still freeing the friend and
+unlocking the next world. Actually defeating the boss is still the only way to get
+credit toward the boss-related achievements and Boss Rush readiness.
+
 ## Achievements & Stats
 
 Every profile tracks lifetime stats (rings collected, enemies defeated, bosses

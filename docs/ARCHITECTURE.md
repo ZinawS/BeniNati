@@ -174,6 +174,26 @@ have dark skies) — a plain semi-transparent bar risked reading as "hidden." Th
 tweens (scaleX from a left-anchored origin) rather than snapping on every hit, with
 a white damage flash, so the reduction reads as motion, not a jump-cut.
 
+### Escaping a boss
+
+Every boss stage map (`config/levels.js`, `W*BOSS`) was extended ~8-12 tiles past
+the boss's patrol range (`bossBaseX ± 160px`, i.e. ±4 tiles — see `update()`'s
+boss-patrol block) with a `G` goal placed near the new far end. `reachGoal()`
+checks `this.stageData.type === "boss"` and routes there to `bossEscaped()` instead
+of the normal next-stage transition. Reaching it is skill-based, not free — the
+boss still deals contact damage on non-vulnerable touch exactly like normal, you
+just never have to actually fight it to reach the exit, since the arena is wide
+enough that the boss's patrol never reaches the goal itself.
+
+`bossEscaped()` deliberately mirrors `bossDefeated()`'s save writes (world cleared,
+ability granted, next world unlocked) so escaping can never soft-lock a later
+world that assumes you have that ability — but it does **not** increment
+`stats.bossesDefeated`, so the boss-related achievements (`boss_slayer`,
+`friend_finder`) and "was this a real win" bookkeeping still require actually
+beating the boss. Disabled during Boss Rush (`reachGoal()` no-ops on the boss
+goal when `this.bossRush` is true) — the entire point of that mode is fighting
+every boss, so a shortcut there would defeat its purpose.
+
 ### Boss Rush mode
 
 `GameScene.init()` accepts `{ bossRush: true, bossRushIndex, bossRushStartTime }`

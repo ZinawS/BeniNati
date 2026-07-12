@@ -233,7 +233,7 @@
     ];
   })();
   var W0BOSS = (() => {
-    const w = 30;
+    const w = 38;
     return [
       row(w),
       row(w),
@@ -241,8 +241,8 @@
       row(w),
       row(w),
       row(w),
-      row(w, [2, "P"], [10, "R"], [12, "R"]),
-      row(w, [0, "x".repeat(30)])
+      row(w, [2, "P"], [10, "R"], [12, "R"], [36, "G"]),
+      row(w, [0, "x".repeat(38)])
     ];
   })();
   var W1S1 = (() => {
@@ -272,7 +272,7 @@
     ];
   })();
   var W1BOSS = (() => {
-    const w = 32;
+    const w = 40;
     return [
       row(w),
       row(w),
@@ -280,8 +280,8 @@
       row(w, [14, "xxxx"]),
       row(w),
       row(w),
-      row(w, [2, "P"], [10, "R"], [12, "R"]),
-      row(w, [0, "x".repeat(32)])
+      row(w, [2, "P"], [10, "R"], [12, "R"], [38, "G"]),
+      row(w, [0, "x".repeat(40)])
     ];
   })();
   var W2S1 = (() => {
@@ -311,7 +311,7 @@
     ];
   })();
   var W2BOSS = (() => {
-    const w = 32;
+    const w = 40;
     return [
       row(w),
       row(w),
@@ -319,8 +319,8 @@
       row(w),
       row(w),
       row(w),
-      row(w, [2, "P"], [10, "R"]),
-      row(w, [0, "x".repeat(32)])
+      row(w, [2, "P"], [10, "R"], [38, "G"]),
+      row(w, [0, "x".repeat(40)])
     ];
   })();
   var W3S1 = (() => {
@@ -350,7 +350,7 @@
     ];
   })();
   var W3BOSS = (() => {
-    const w = 32;
+    const w = 40;
     return [
       row(w),
       row(w),
@@ -358,8 +358,8 @@
       row(w, [10, "xxx"], [20, "xxx"]),
       row(w),
       row(w),
-      row(w, [2, "P"], [10, "R"]),
-      row(w, [0, "x".repeat(32)])
+      row(w, [2, "P"], [10, "R"], [38, "G"]),
+      row(w, [0, "x".repeat(40)])
     ];
   })();
   var W4S1 = (() => {
@@ -389,7 +389,7 @@
     ];
   })();
   var W4BOSS = (() => {
-    const w = 36;
+    const w = 44;
     return [
       row(w),
       row(w, [6, "xxx"], [16, "xxx"], [26, "xxx"]),
@@ -397,8 +397,8 @@
       row(w),
       row(w),
       row(w),
-      row(w, [2, "P"], [10, "R"], [12, "R"]),
-      row(w, [0, "x".repeat(36)])
+      row(w, [2, "P"], [10, "R"], [12, "R"], [42, "G"]),
+      row(w, [0, "x".repeat(44)])
     ];
   })();
   var W5S1 = (() => {
@@ -428,7 +428,7 @@
     ];
   })();
   var W5BOSS = (() => {
-    const w = 32;
+    const w = 40;
     return [
       row(w),
       row(w),
@@ -436,8 +436,8 @@
       row(w),
       row(w),
       row(w),
-      row(w, [2, "P"], [10, "R"]),
-      row(w, [0, "x".repeat(32)])
+      row(w, [2, "P"], [10, "R"], [38, "G"]),
+      row(w, [0, "x".repeat(40)])
     ];
   })();
   var W6S1 = (() => {
@@ -467,7 +467,7 @@
     ];
   })();
   var W6BOSS = (() => {
-    const w = 32;
+    const w = 40;
     return [
       row(w),
       row(w),
@@ -475,8 +475,8 @@
       row(w),
       row(w),
       row(w),
-      row(w, [2, "P"], [10, "R"]),
-      row(w, [0, "x".repeat(32)])
+      row(w, [2, "P"], [10, "R"], [38, "G"]),
+      row(w, [0, "x".repeat(40)])
     ];
   })();
   var W7S1 = (() => {
@@ -506,7 +506,7 @@
     ];
   })();
   var W7BOSS = (() => {
-    const w = 34;
+    const w = 42;
     return [
       row(w),
       row(w),
@@ -514,8 +514,8 @@
       row(w),
       row(w),
       row(w),
-      row(w, [2, "P"], [10, "R"]),
-      row(w, [0, "x".repeat(34)])
+      row(w, [2, "P"], [10, "R"], [40, "G"]),
+      row(w, [0, "x".repeat(42)])
     ];
   })();
   var W8S1 = (() => {
@@ -545,7 +545,7 @@
     ];
   })();
   var W8BOSS = (() => {
-    const w = 36;
+    const w = 44;
     return [
       row(w),
       row(w),
@@ -553,8 +553,8 @@
       row(w),
       row(w),
       row(w),
-      row(w, [2, "P"], [10, "R"], [12, "R"]),
-      row(w, [0, "x".repeat(36)])
+      row(w, [2, "P"], [10, "R"], [12, "R"], [42, "G"]),
+      row(w, [0, "x".repeat(44)])
     ];
   })();
 
@@ -1446,6 +1446,7 @@
         ["Rings", "Collect them! They protect you \u2014 lose them instead of dying when hit."],
         ["Checkpoints", "Touching a flag saves your spot in the stage."],
         ["Boss Fights", "Wait for the boss to flash YELLOW, then jump on it, spin-dash it, or homing-attack it."],
+        ["Escaping a Boss", "Don't want to fight? Every boss arena has a way past \u2014 run/jump beyond it to the exit and you'll skip the fight (still counts as clearing the world)."],
         ["Lava", "Never touch it \u2014 it burns! You respawn at your last checkpoint."],
         ["Pause", "ESC any time during a stage."],
         ["Sound", "Tap the speaker icon (top-right) any time to enable/mute audio."]
@@ -2109,7 +2110,8 @@
       });
       this.bossAttackTimer = this.time.addEvent({ delay: this.nightmare ? 1800 : 2500, callback: () => this.bossAttack(), loop: true });
       this.drawBossBar();
-      this.showHint(`BOSS: ${this.world.bossName}! Wait for it to flash YELLOW, then jump on it or dash into it!`);
+      const escapeHint = this.bossRush ? "" : " Or get past it and keep running to escape the fight entirely!";
+      this.showHint(`BOSS: ${this.world.bossName}! Wait for it to flash YELLOW, then jump on it or dash into it!${escapeHint}`);
     }
     /**
      * (Re)creates the bar at the right position/size — used on setup and on
@@ -2625,11 +2627,54 @@ Click to continue`,
     }
     reachGoal() {
       if (this.inputLocked) return;
+      if (this.stageData.type === "boss") {
+        if (this.bossRush) return;
+        this.bossEscaped();
+        return;
+      }
       this.inputLocked = true;
       SFX.goal();
       this.time.delayedCall(300, () => {
         const nextStage = this.stageIndex + 1;
         sceneTransition(this, "GameScene", { worldIndex: this.worldIndex, stageIndex: nextStage, score: this.score, playerName: this.playerName, profileTint: this.profileTint });
+      });
+    }
+    /**
+     * Every boss arena has an exit past the boss's patrol range — reaching it
+     * skips the fight as an alternate, skill-based way to progress (get past
+     * without landing a hit, since the boss still damages you on non-vulnerable
+     * contact). Still grants the world's ability and unlocks the next world
+     * (so it can never soft-lock a later level that assumes you have that
+     * ability), but doesn't count toward the bossesDefeated stat or its
+     * achievements — those still require actually winning the fight.
+     */
+    bossEscaped() {
+      this.inputLocked = true;
+      SFX.goal();
+      if (this.boss) this.boss.body.enable = false;
+      if (this.bossAttackTimer) this.bossAttackTimer.remove();
+      Music.setBossIntensity(false);
+      const container = document.getElementById("game-container");
+      if (container) container.classList.remove("boss-mode");
+      const save = Save.current();
+      save.clearedWorlds[this.worldIndex] = true;
+      if (this.world.rewardKey) save.abilities[this.world.rewardKey] = true;
+      save.unlockedWorld = Math.max(save.unlockedWorld, this.worldIndex + 1);
+      save.gameCompleted = save.clearedWorlds.every(Boolean);
+      Save.persist();
+      const isFinal = this.worldIndex === FINAL_WORLD_INDEX;
+      const line = isFinal ? `You slipped past ${VILLAIN}'s fortress without a fight and freed everyone! The final showdown will have to wait for another day...` : `You snuck past ${this.world.bossName} and freed ${this.world.friend} anyway!`;
+      this.time.delayedCall(300, () => {
+        const msg = this.add.text(
+          this.scale.width / 2,
+          this.scale.height / 2 - 40,
+          `ESCAPED!
+${line}
+
+Click to continue`,
+          { fontSize: "18px", fill: "#66ccff", align: "center", backgroundColor: "#000000cc", padding: { x: 20, y: 20 }, wordWrap: { width: Math.min(560, this.scale.width - 60) } }
+        ).setOrigin(0.5).setScrollFactor(0);
+        this.input.once("pointerdown", () => sceneTransition(this, "WorldMap"));
       });
     }
     updateHUD() {

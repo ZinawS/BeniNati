@@ -4,6 +4,20 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is
 [Semantic Versioning](https://semver.org/).
 
+## [1.8.0] — Boss escape routes
+
+### Added
+- Every boss arena now has an alternate way through: an exit past the boss's
+  patrol range (extended ~8-12 tiles past its `±160px` patrol boundary) lets
+  you skip the fight entirely by running/jumping past it, still risking a
+  hit like normal if you're not careful. Reaching it still frees the
+  world's friend, grants the ability, and unlocks the next world — exactly
+  like defeating the boss — so it can never block progress into a later
+  world that assumes you have that ability. It does *not* count toward the
+  `bossesDefeated` stat or its achievements, so actually winning the fight
+  still means something. Disabled during Boss Rush, where fighting every
+  boss is the entire point.
+
 ## [1.7.0] — Boss Rush mode, boss bar visibility fix
 
 ### Fixed
