@@ -50,16 +50,19 @@ export function isUnlocked() {
   return !!audioCtx && audioCtx.state === "running";
 }
 
-function isEnabled(kind) {
+/** 0-1 volume level for "sfx" or "music", independently controllable in Settings. */
+function getVolume(kind) {
   try {
-    return Save.current().settings[kind] !== false;
+    const v = Save.current().settings[kind + "Volume"];
+    return typeof v === "number" ? v : 1;
   } catch (e) {
-    return true; // no active profile yet (e.g. main menu) — default to on
+    return 1; // no active profile yet (e.g. main menu) — default to full volume
   }
 }
 
 function beep(freq, duration, type = "square", volume = 0.15, delay = 0) {
-  if (!isEnabled("sfx")) return;
+  const level = getVolume("sfx");
+  if (level <= 0) return;
   try {
     const ctx = getAudioCtx();
     if (ctx.state === "suspended") ctx.resume();
@@ -70,7 +73,7 @@ function beep(freq, duration, type = "square", volume = 0.15, delay = 0) {
     osc.connect(gain);
     gain.connect(ctx.destination);
     const t0 = ctx.currentTime + delay;
-    gain.gain.setValueAtTime(volume, t0);
+    gain.gain.setValueAtTime(volume * level, t0);
     gain.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
     osc.start(t0);
     osc.stop(t0 + duration);
@@ -149,7 +152,8 @@ class MusicSystem {
 
   playTheme(themeIndex) {
     this.stop(0.4);
-    if (!isEnabled("music")) return;
+    const level = getVolume("music");
+    if (level <= 0) return;
     try {
       const ctx = getAudioCtx();
       if (ctx.state === "suspended") ctx.resume();
@@ -157,7 +161,7 @@ class MusicSystem {
       this.master = ctx.createGain();
       this.master.gain.value = 0;
       this.master.connect(ctx.destination);
-      this.master.gain.setTargetAtTime(0.55, ctx.currentTime, 1.0);
+      this.master.gain.setTargetAtTime(0.55 * level, ctx.currentTime, 1.0);
       this.playing = true;
       this._scheduleLoop();
     } catch (e) {}
@@ -168,7 +172,8 @@ class MusicSystem {
     this.intense = active;
     if (this.master) {
       const ctx = getAudioCtx();
-      this.master.gain.setTargetAtTime(active ? 0.68 : 0.55, ctx.currentTime, 0.8);
+      const level = getVolume("music");
+      this.master.gain.setTargetAtTime((active ? 0.68 : 0.55) * level, ctx.currentTime, 0.8);
     }
   }
 

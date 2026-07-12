@@ -44,7 +44,7 @@ export function defaultProfileSave() {
     unlockedWorld: 0,
     clearedWorlds: new Array(WORLDS.length).fill(false),
     abilities: defaultAbilities(),
-    settings: { encouragement: true, sfx: true, music: true },
+    settings: { encouragement: true, sfxVolume: 1, musicVolume: 0.75 },
     nightmareMode: false,
     gameCompleted: false,
     stats: {
@@ -65,12 +65,27 @@ function migrateSave(parsed) {
   (parsed.clearedWorlds || []).forEach((v, i) => {
     if (i < clearedWorlds.length) clearedWorlds[i] = v;
   });
+
+  // Older saves had boolean settings.sfx / settings.music instead of
+  // sfxVolume / musicVolume (0-1). Carry the on/off intent forward as a
+  // volume level rather than silently discarding the player's preference.
+  const parsedSettings = parsed.settings || {};
+  const settings = { ...defaults.settings, ...parsedSettings };
+  if (parsedSettings.sfxVolume === undefined && parsedSettings.sfx !== undefined) {
+    settings.sfxVolume = parsedSettings.sfx ? 1 : 0;
+  }
+  if (parsedSettings.musicVolume === undefined && parsedSettings.music !== undefined) {
+    settings.musicVolume = parsedSettings.music ? defaults.settings.musicVolume : 0;
+  }
+  delete settings.sfx;
+  delete settings.music;
+
   return {
     ...defaults,
     ...parsed,
     clearedWorlds,
     abilities: { ...defaults.abilities, ...(parsed.abilities || {}) },
-    settings: { ...defaults.settings, ...(parsed.settings || {}) },
+    settings,
     stats: { ...defaults.stats, ...(parsed.stats || {}), bestRingsPerStage: { ...(parsed.stats && parsed.stats.bestRingsPerStage) || {} } },
   };
 }

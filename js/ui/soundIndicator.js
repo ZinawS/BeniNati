@@ -19,7 +19,7 @@ export function addSoundIndicator(scene, x = 764, y = 24) {
   const muted = () => {
     try {
       const s = Save.current().settings;
-      return s.sfx === false && s.music === false;
+      return (s.sfxVolume || 0) <= 0 && (s.musicVolume || 0) <= 0;
     } catch (e) {
       return false;
     }
@@ -39,8 +39,8 @@ export function addSoundIndicator(scene, x = 764, y = 24) {
     try {
       const save = Save.current();
       const nowMuted = !muted();
-      save.settings.sfx = !nowMuted;
-      save.settings.music = !nowMuted;
+      save.settings.sfxVolume = nowMuted ? 0 : 1;
+      save.settings.musicVolume = nowMuted ? 0 : 0.75;
       Save.persist();
       if (!nowMuted) SFX.uiClick();
     } catch (e) {}

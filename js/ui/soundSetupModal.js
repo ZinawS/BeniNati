@@ -32,7 +32,7 @@ export function showSoundSetupModal(scene) {
   try {
     save = Save.current();
   } catch (e) {
-    save = { settings: { sfx: true, music: true } };
+    save = { settings: { sfxVolume: 1, musicVolume: 0.75 } };
   }
 
   const elements = [];
@@ -50,7 +50,7 @@ export function showSoundSetupModal(scene) {
   add(card);
 
   add(scene.add.text(cx, cy - cardH / 2 + 34, "🔊 Sound Settings", { fontSize: "22px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 2));
-  add(scene.add.text(cx, cy - cardH / 2 + 66, "This game has music and sound effects.\nTap below to turn them on or off.", { fontSize: "13px", fill: "#ddd", align: "center" }).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 2));
+  add(scene.add.text(cx, cy - cardH / 2 + 66, "This game has music and sound effects.\nTap below to turn them on or off — you can fine-tune\nthe volume of each separately in Settings later.", { fontSize: "13px", fill: "#ddd", align: "center" }).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 2));
 
   const unlock = () => {
     initAudioUnlock();
@@ -60,19 +60,20 @@ export function showSoundSetupModal(scene) {
     } catch (e) {}
   };
 
-  const toggleLabel = () => `Sound: ${save.settings.sfx || save.settings.music ? "ON" : "OFF"}`;
+  const isOn = () => save.settings.sfxVolume > 0 || save.settings.musicVolume > 0;
+  const toggleLabel = () => `Sound: ${isOn() ? "ON" : "OFF"}`;
   const toggleBtn = add(
     scene.add.text(cx, cy - 4, toggleLabel(), { fontSize: "20px", fill: "#fff", backgroundColor: "#222244", padding: { x: 16, y: 8 } })
       .setOrigin(0.5).setScrollFactor(0).setDepth(depth + 2).setInteractive({ useHandCursor: true })
   );
   toggleBtn.on("pointerdown", () => {
     unlock();
-    const on = !(save.settings.sfx || save.settings.music);
-    save.settings.sfx = on;
-    save.settings.music = on;
+    const turningOn = !isOn();
+    save.settings.sfxVolume = turningOn ? 1 : 0;
+    save.settings.musicVolume = turningOn ? 0.75 : 0;
     try { Save.persist(); } catch (e) {}
     toggleBtn.setText(toggleLabel());
-    if (on) SFX.uiClick();
+    if (turningOn) SFX.uiClick();
   });
 
   const close = () => {
