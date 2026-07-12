@@ -23,6 +23,7 @@ export class HowToPlay extends Phaser.Scene {
       ["Rings", "Collect them! They protect you — lose them instead of dying when hit."],
       ["Checkpoints", "Touching a flag saves your spot in the stage."],
       ["Boss Fights", "Wait for the boss to flash YELLOW, then jump on it, spin-dash it, or homing-attack it."],
+      ["Escaping a Boss", "Don't want to fight? Every boss arena has a way past — run/jump beyond it to the exit and you'll skip the fight (still counts as clearing the world)."],
       ["Lava", "Never touch it — it burns! You respawn at your last checkpoint."],
       ["Pause", "ESC any time during a stage."],
       ["Sound", "Tap the speaker icon (top-right) any time to enable/mute audio."],

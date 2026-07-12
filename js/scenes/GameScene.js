@@ -302,7 +302,8 @@ export class GameScene extends Phaser.Scene {
 
     this.bossAttackTimer = this.time.addEvent({ delay: this.nightmare ? 1800 : 2500, callback: () => this.bossAttack(), loop: true });
     this.drawBossBar();
-    this.showHint(`BOSS: ${this.world.bossName}! Wait for it to flash YELLOW, then jump on it or dash into it!`);
+    const escapeHint = this.bossRush ? "" : " Or get past it and keep running to escape the fight entirely!";
+    this.showHint(`BOSS: ${this.world.bossName}! Wait for it to flash YELLOW, then jump on it or dash into it!${escapeHint}`);
   }
 
   /**
@@ -807,11 +808,56 @@ export class GameScene extends Phaser.Scene {
 
   reachGoal() {
     if (this.inputLocked) return;
+    if (this.stageData.type === "boss") {
+      // Boss Rush is specifically about fighting every boss — no shortcut there.
+      if (this.bossRush) return;
+      this.bossEscaped();
+      return;
+    }
     this.inputLocked = true;
     SFX.goal();
     this.time.delayedCall(300, () => {
       const nextStage = this.stageIndex + 1;
       sceneTransition(this, "GameScene", { worldIndex: this.worldIndex, stageIndex: nextStage, score: this.score, playerName: this.playerName, profileTint: this.profileTint });
+    });
+  }
+
+  /**
+   * Every boss arena has an exit past the boss's patrol range — reaching it
+   * skips the fight as an alternate, skill-based way to progress (get past
+   * without landing a hit, since the boss still damages you on non-vulnerable
+   * contact). Still grants the world's ability and unlocks the next world
+   * (so it can never soft-lock a later level that assumes you have that
+   * ability), but doesn't count toward the bossesDefeated stat or its
+   * achievements — those still require actually winning the fight.
+   */
+  bossEscaped() {
+    this.inputLocked = true;
+    SFX.goal();
+    if (this.boss) this.boss.body.enable = false;
+    if (this.bossAttackTimer) this.bossAttackTimer.remove();
+    Music.setBossIntensity(false);
+    const container = document.getElementById("game-container");
+    if (container) container.classList.remove("boss-mode");
+
+    const save = Save.current();
+    save.clearedWorlds[this.worldIndex] = true;
+    if (this.world.rewardKey) save.abilities[this.world.rewardKey] = true;
+    save.unlockedWorld = Math.max(save.unlockedWorld, this.worldIndex + 1);
+    save.gameCompleted = save.clearedWorlds.every(Boolean);
+    Save.persist();
+
+    const isFinal = this.worldIndex === FINAL_WORLD_INDEX;
+    const line = isFinal
+      ? `You slipped past ${VILLAIN}'s fortress without a fight and freed everyone! The final showdown will have to wait for another day...`
+      : `You snuck past ${this.world.bossName} and freed ${this.world.friend} anyway!`;
+
+    this.time.delayedCall(300, () => {
+      const msg = this.add.text(this.scale.width / 2, this.scale.height / 2 - 40,
+        `ESCAPED!\n${line}\n\nClick to continue`,
+        { fontSize: "18px", fill: "#66ccff", align: "center", backgroundColor: "#000000cc", padding: { x: 20, y: 20 }, wordWrap: { width: Math.min(560, this.scale.width - 60) } }
+      ).setOrigin(0.5).setScrollFactor(0);
+      this.input.once("pointerdown", () => sceneTransition(this, "WorldMap"));
     });
   }
 

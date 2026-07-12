@@ -38,12 +38,17 @@ export const W0S2 = (() => {
   ];
 })();
 export const W0BOSS = (() => {
-  const w = 30;
+  // Extended past the boss's patrol range with an escape goal ('G') at the
+  // far end — running/jumping past the boss to reach it skips the fight
+  // (still advances the world) as an alternate route for anyone who'd
+  // rather not fight; actually beating the boss is still the only way to
+  // get the "defeated" stats/achievements and the full victory moment.
+  const w = 38;
   return [
     row(w), row(w), row(w), row(w), row(w),
     row(w),
-    row(w, [2, "P"], [10, "R"], [12, "R"]),
-    row(w, [0, "x".repeat(30)]),
+    row(w, [2, "P"], [10, "R"], [12, "R"], [36, "G"]),
+    row(w, [0, "x".repeat(38)]),
   ];
 })();
 
@@ -75,13 +80,13 @@ export const W1S2 = (() => {
   ];
 })();
 export const W1BOSS = (() => {
-  const w = 32;
+  const w = 40; // extended for an escape route past the boss — see W0BOSS
   return [
     row(w), row(w), row(w),
     row(w, [14, "xxxx"]),
     row(w), row(w),
-    row(w, [2, "P"], [10, "R"], [12, "R"]),
-    row(w, [0, "x".repeat(32)]),
+    row(w, [2, "P"], [10, "R"], [12, "R"], [38, "G"]),
+    row(w, [0, "x".repeat(40)]),
   ];
 })();
 
@@ -113,14 +118,14 @@ export const W2S2 = (() => {
   ];
 })();
 export const W2BOSS = (() => {
-  const w = 32;
+  const w = 40; // extended for an escape route past the boss — see W0BOSS
   return [
     row(w), row(w),
     row(w, [8, "xxx"], [20, "xxx"]),
     row(w), row(w),
     row(w),
-    row(w, [2, "P"], [10, "R"]),
-    row(w, [0, "x".repeat(32)]),
+    row(w, [2, "P"], [10, "R"], [38, "G"]),
+    row(w, [0, "x".repeat(40)]),
   ];
 })();
 
@@ -152,14 +157,14 @@ export const W3S2 = (() => {
   ];
 })();
 export const W3BOSS = (() => {
-  const w = 32;
+  const w = 40; // extended for an escape route past the boss — see W0BOSS
   return [
     row(w), row(w),
     row(w),
     row(w, [10, "xxx"], [20, "xxx"]),
     row(w), row(w),
-    row(w, [2, "P"], [10, "R"]),
-    row(w, [0, "x".repeat(32)]),
+    row(w, [2, "P"], [10, "R"], [38, "G"]),
+    row(w, [0, "x".repeat(40)]),
   ];
 })();
 
@@ -191,14 +196,14 @@ export const W4S2 = (() => {
   ];
 })();
 export const W4BOSS = (() => {
-  const w = 36;
+  const w = 44; // extended for an escape route past the boss — see W0BOSS
   return [
     row(w),
     row(w, [6, "xxx"], [16, "xxx"], [26, "xxx"]),
     row(w), row(w), row(w),
     row(w),
-    row(w, [2, "P"], [10, "R"], [12, "R"]),
-    row(w, [0, "x".repeat(36)]),
+    row(w, [2, "P"], [10, "R"], [12, "R"], [42, "G"]),
+    row(w, [0, "x".repeat(44)]),
   ];
 })();
 
@@ -230,12 +235,12 @@ export const W5S2 = (() => {
   ];
 })();
 export const W5BOSS = (() => {
-  const w = 32;
+  const w = 40; // extended for an escape route past the boss — see W0BOSS
   return [
     row(w), row(w), row(w), row(w), row(w),
     row(w),
-    row(w, [2, "P"], [10, "R"]),
-    row(w, [0, "x".repeat(32)]),
+    row(w, [2, "P"], [10, "R"], [38, "G"]),
+    row(w, [0, "x".repeat(40)]),
   ];
 })();
 
@@ -267,12 +272,12 @@ export const W6S2 = (() => {
   ];
 })();
 export const W6BOSS = (() => {
-  const w = 32;
+  const w = 40; // extended for an escape route past the boss — see W0BOSS
   return [
     row(w), row(w), row(w), row(w), row(w),
     row(w),
-    row(w, [2, "P"], [10, "R"]),
-    row(w, [0, "x".repeat(32)]),
+    row(w, [2, "P"], [10, "R"], [38, "G"]),
+    row(w, [0, "x".repeat(40)]),
   ];
 })();
 
@@ -304,12 +309,12 @@ export const W7S2 = (() => {
   ];
 })();
 export const W7BOSS = (() => {
-  const w = 34;
+  const w = 42; // extended for an escape route past the boss — see W0BOSS
   return [
     row(w), row(w), row(w), row(w), row(w),
     row(w),
-    row(w, [2, "P"], [10, "R"]),
-    row(w, [0, "x".repeat(34)]),
+    row(w, [2, "P"], [10, "R"], [40, "G"]),
+    row(w, [0, "x".repeat(42)]),
   ];
 })();
 
@@ -341,11 +346,11 @@ export const W8S2 = (() => {
   ];
 })();
 export const W8BOSS = (() => {
-  const w = 36;
+  const w = 44; // extended for an escape route past the boss — see W0BOSS
   return [
     row(w), row(w), row(w), row(w), row(w),
     row(w),
-    row(w, [2, "P"], [10, "R"], [12, "R"]),
-    row(w, [0, "x".repeat(36)]),
+    row(w, [2, "P"], [10, "R"], [12, "R"], [42, "G"]),
+    row(w, [0, "x".repeat(44)]),
   ];
 })();
