@@ -84,7 +84,46 @@ export function buildLevel(scene, levelData, shadowGenerator) {
   goalMesh.material = goalMat;
   meshes.push(goalMesh);
 
-  return { meshes, aggregates, goalMesh, movingPlatforms };
+  // Bonus rings — small cyan tori, distinct from the goal's larger gold one
+  // at a glance. Pure distance-check pickup (same pattern main.js already
+  // uses for the goal), no physics trigger needed.
+  const collectibles = (levelData.collectibles || []).map((pos, i) => {
+    const mesh = MeshBuilder.CreateTorus(`collectible${i}`, { diameter: 0.6, thickness: 0.12, tessellation: 16 }, scene);
+    mesh.position.set(pos[0], pos[1], pos[2]);
+    const mat = new PBRMaterial(`collectibleMat${i}`, scene);
+    mat.emissiveColor = new Color3(0.3, 0.9, 1);
+    mat.albedoColor = new Color3(0.3, 0.9, 1);
+    mesh.material = mat;
+    meshes.push(mesh);
+    return { mesh, collected: false };
+  });
+
+  // Checkpoint beacons — a thin pole planted at the actual respawn spot
+  // (ground level, same convention as playerStart), drawn tall so it reads
+  // from a distance. Starts dim, lights up green once activated (see
+  // main.js) as the only feedback the player needs that it "took".
+  const checkpoints = (levelData.checkpoints || []).map((pos, i) => {
+    const mesh = MeshBuilder.CreateCylinder(`checkpoint${i}`, { diameter: 0.3, height: 2 }, scene);
+    mesh.position.set(pos[0], pos[1] + 1, pos[2]);
+    const mat = new PBRMaterial(`checkpointMat${i}`, scene);
+    mat.emissiveColor = new Color3(0.3, 0.35, 0.4);
+    mat.albedoColor = new Color3(0.3, 0.35, 0.4);
+    mesh.material = mat;
+    mesh.receiveShadows = true;
+    shadowGenerator.addShadowCaster(mesh);
+    meshes.push(mesh);
+    return { mesh, mat, activated: false, respawn: pos };
+  });
+
+  return { meshes, aggregates, goalMesh, movingPlatforms, collectibles, checkpoints };
+}
+
+// Spins every not-yet-collected ring in place — purely cosmetic, same idea
+// as the goal marker's own spin in main.js's render loop.
+export function updateCollectibles(collectibles, dt) {
+  collectibles.forEach((c) => {
+    if (!c.collected) c.mesh.rotation.y += dt * 2.4;
+  });
 }
 
 // Advances every moving platform in the current level by one frame — an

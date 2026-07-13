@@ -9,15 +9,18 @@ import { Engine, Scene, ArcRotateCamera, Vector3 } from "@babylonjs/core";
 import "@babylonjs/loaders";
 
 import { createHavokPlugin } from "./physics.js";
-import { buildEnvironment, buildLevel, disposeLevel, updateMovingPlatforms } from "./environment.js";
+import { buildEnvironment, buildLevel, disposeLevel, updateMovingPlatforms, updateCollectibles } from "./environment.js";
 import { loadCharacter } from "./character.js";
 import { createKeyboardState } from "./input.js";
 import { createTouchControls, isTouchDevice } from "./touchControls.js";
 import { setupPostProcessing } from "./postfx.js";
 import { LEVELS } from "./levels.js";
 import { PERSONAS } from "./personas.js";
+import { loadProgress, recordLevelClear } from "./save.js";
 
 const GOAL_RADIUS = 2;
+const COLLECTIBLE_RADIUS = 1.2;
+const CHECKPOINT_RADIUS = 1.5;
 const STARTING_LIVES = 3;
 
 // Shown before anything Babylon-related even starts — it's plain DOM, no
@@ -68,6 +71,7 @@ async function main() {
   const loadingEl = document.getElementById("loading");
   const levelInfoEl = document.getElementById("level-info");
   const livesInfoEl = document.getElementById("lives-info");
+  const ringsInfoEl = document.getElementById("rings-info");
   const infoEl = document.getElementById("info");
   const completeEl = document.getElementById("level-complete");
   const completeTitleEl = document.getElementById("level-complete-title");
@@ -80,10 +84,16 @@ async function main() {
     infoEl.textContent = "Left stick to move · JUMP to jump · RUN to sprint · Drag screen to orbit camera";
   }
 
-  let levelIndex = 0;
+  // Auto-resume at the furthest level a previous session reached — no
+  // level-select screen, just skip straight past what's already been
+  // cleared (see save.js for why there's no per-profile system here).
+  let progress = loadProgress();
+  let levelIndex = Math.min(progress.unlockedLevel, LEVELS.length - 1);
   let levelObjects = null;
   let levelActive = false; // false while an overlay (level-complete/game-over) is up
   let lives = STARTING_LIVES;
+  let currentRespawnPoint = null; // ground-level [x,y,z] — level start until a checkpoint is hit
+  let ringsThisLevel = 0;
 
   function updateLivesHUD() {
     if (!livesInfoEl) return;
@@ -91,11 +101,19 @@ async function main() {
     livesInfoEl.classList.remove("hidden");
   }
 
+  function updateRingsHUD(total) {
+    if (!ringsInfoEl) return;
+    ringsInfoEl.textContent = `💎 ${ringsThisLevel}/${total}`;
+    ringsInfoEl.classList.remove("hidden");
+  }
+
   function loadLevel(index) {
     disposeLevel(levelObjects);
     const data = LEVELS[index];
     levelObjects = buildLevel(scene, data, shadowGenerator);
-    character.respawn(data.playerStart);
+    currentRespawnPoint = data.playerStart.slice();
+    ringsThisLevel = 0;
+    character.respawn(currentRespawnPoint);
     levelActive = true;
     completeEl.classList.add("hidden");
     gameOverEl.classList.add("hidden");
@@ -104,22 +122,28 @@ async function main() {
       levelInfoEl.classList.remove("hidden");
     }
     updateLivesHUD();
+    updateRingsHUD((data.collectibles || []).length);
   }
 
   function onGoalReached() {
     levelActive = false;
     const isLast = levelIndex === LEVELS.length - 1;
+    const totalRings = (LEVELS[levelIndex].collectibles || []).length;
+    const { progress: nextProgress, isNewBest } = recordLevelClear(progress, levelIndex, ringsThisLevel, LEVELS.length);
+    progress = nextProgress;
     completeTitleEl.textContent = isLast ? "🏆 All Levels Complete!" : "Level Complete!";
-    completeSubEl.textContent = isLast
-      ? "You finished every level in this prototype."
-      : `On to Level ${levelIndex + 2}: ${LEVELS[levelIndex + 1].name}`;
+    const ringsLine = totalRings > 0 ? ` · 💎 ${ringsThisLevel}/${totalRings}${isNewBest ? " (new best!)" : ""}` : "";
+    completeSubEl.textContent =
+      (isLast ? "You finished every level in this prototype." : `On to Level ${levelIndex + 2}: ${LEVELS[levelIndex + 1].name}`) +
+      ringsLine;
     completeBtnEl.textContent = isLast ? "Play Again" : "Next Level";
     completeEl.classList.remove("hidden");
   }
 
   // Falling into a gap costs a life instead of being a free, unlimited
   // retry — repeatedly missing jumps now has a real consequence, same as
-  // any standard platformer's lives system.
+  // any standard platformer's lives system. Respawns at the last activated
+  // checkpoint, not always the level start.
   function onFall(data) {
     lives -= 1;
     updateLivesHUD();
@@ -127,7 +151,7 @@ async function main() {
       levelActive = false;
       gameOverEl.classList.remove("hidden");
     } else {
-      character.respawn(data.playerStart);
+      character.respawn(currentRespawnPoint);
     }
   }
 
@@ -143,7 +167,7 @@ async function main() {
     loadLevel(0);
   });
 
-  loadLevel(0);
+  loadLevel(levelIndex);
   if (loadingEl) loadingEl.classList.add("hidden");
 
   engine.runRenderLoop(() => {
@@ -155,6 +179,7 @@ async function main() {
     }
     if (levelObjects && levelActive) {
       updateMovingPlatforms(levelObjects.movingPlatforms, dt);
+      updateCollectibles(levelObjects.collectibles, dt);
     }
 
     if (levelActive) {
@@ -191,6 +216,24 @@ async function main() {
       if (character.root.position.y < data.fallThreshold) {
         onFall(data);
       } else {
+        levelObjects.collectibles.forEach((c) => {
+          if (!c.collected && Vector3.Distance(character.root.position, c.mesh.position) < COLLECTIBLE_RADIUS) {
+            c.collected = true;
+            c.mesh.setEnabled(false);
+            ringsThisLevel += 1;
+            updateRingsHUD((data.collectibles || []).length);
+          }
+        });
+
+        levelObjects.checkpoints.forEach((cp) => {
+          if (!cp.activated && Vector3.Distance(character.root.position, cp.mesh.position) < CHECKPOINT_RADIUS) {
+            cp.activated = true;
+            cp.mat.emissiveColor.set(0.25, 1, 0.4);
+            cp.mat.albedoColor.set(0.25, 1, 0.4);
+            currentRespawnPoint = cp.respawn.slice();
+          }
+        });
+
         const goalVec = new Vector3(data.goal[0], data.goal[1], data.goal[2]);
         if (Vector3.Distance(character.root.position, goalVec) < GOAL_RADIUS) {
           onGoalReached();

@@ -10,6 +10,14 @@
 // and forth (real Havok ANIMATED-motion physics, not a visual-only fake) —
 // introduced starting Level 2, faster/wider by Level 4, as one concrete way
 // the difficulty ramps up beyond just bigger gaps.
+//
+// `collectibles` are optional bonus pickups (rings), placed ~1.5 units above
+// a static platform's top surface so walking under one is enough to collect
+// it — never placed on a `moving` platform, since the visual mesh doesn't
+// ride along with the platform's slide. `checkpoints` are respawn points:
+// [x, y, z] is the actual ground-level spot the player respawns at (same
+// convention as `playerStart`), also never on a moving platform for the
+// same reason.
 export const LEVELS = [
   {
     name: "First Steps",
@@ -23,6 +31,12 @@ export const LEVELS = [
       { pos: [3, 0.5, 28], size: [5, 1, 5] },
     ],
     goal: [3, 1.5, 28],
+    collectibles: [
+      [0, 2.0, 8],
+      [0, 2.0, 15],
+      [3, 2.5, 21],
+    ],
+    checkpoints: [[-1.3, 1.0, 15]],
   },
   {
     name: "Stepping Up",
@@ -38,6 +52,16 @@ export const LEVELS = [
       { pos: [-3, 3.5, 37], size: [5, 1, 5] },
     ],
     goal: [-3, 5, 37],
+    collectibles: [
+      [0, 2.5, 7],
+      [0, 3.5, 13],
+      [-3, 5.0, 25],
+      [-3, 5.5, 31],
+    ],
+    checkpoints: [
+      [1.3, 2.5, 13],
+      [-1.7, 4.5, 31],
+    ],
   },
   {
     name: "The Gauntlet",
@@ -54,6 +78,17 @@ export const LEVELS = [
       { pos: [-4, 2.5, 40], size: [5, 1, 5] },
     ],
     goal: [-4, 4, 40],
+    collectibles: [
+      [0, 2.0, 7],
+      [4, 2.0, 12],
+      [0, 3.0, 23],
+      [0, 4.0, 29],
+      [-4, 4.0, 34],
+    ],
+    checkpoints: [
+      [2.7, 1.0, 12],
+      [1.3, 3.0, 29],
+    ],
   },
   {
     name: "Sky Course",
@@ -72,5 +107,17 @@ export const LEVELS = [
       { pos: [0, 7, 49], size: [5, 1, 5] },
     ],
     goal: [0, 8.5, 49],
+    collectibles: [
+      [0, 3.0, 6],
+      [3, 4.0, 11],
+      [-1, 6.0, 21],
+      [3, 8.0, 31],
+      [3, 8.0, 37],
+      [0, 8.5, 43],
+    ],
+    checkpoints: [
+      [1.7, 3.0, 11],
+      [1.7, 7.0, 31],
+    ],
   },
 ];

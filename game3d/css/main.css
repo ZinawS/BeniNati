@@ -148,6 +148,21 @@ html, body {
   display: none;
 }
 
+#rings-info {
+  position: absolute;
+  top: 56px;
+  right: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 8px 14px;
+  border-radius: 8px;
+  color: #7fe8ff;
+}
+#rings-info.hidden {
+  display: none;
+}
+
 #level-complete,
 #game-over {
   position: absolute;
