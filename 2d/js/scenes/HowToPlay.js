@@ -10,7 +10,7 @@ export class HowToPlay extends Phaser.Scene {
   create() {
     fadeInScene(this);
     autoRelayoutOnResize(this);
-    const { cx, width, height } = screenAnchors(this);
+    const { cx, width, height, safeBottom } = screenAnchors(this);
     this.add.text(cx, height * 0.08, "HOW TO PLAY", { fontSize: "26px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
 
     const lines = [
@@ -45,6 +45,6 @@ export class HowToPlay extends Phaser.Scene {
       this.add.text(colX, y + 15, desc, { fontSize: "11px", fill: "#eee", wordWrap: { width: colWidth } });
     });
 
-    makeButton(this, cx, height - 26, "Back", () => sceneTransition(this, this.returnTo), { color: "#00ff00" });
+    makeButton(this, cx, safeBottom - 26, "Back", () => sceneTransition(this, this.returnTo), { color: "#00ff00" });
   }
 }

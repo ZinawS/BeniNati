@@ -9,7 +9,7 @@ export class StatsScene extends Phaser.Scene {
     fadeInScene(this);
     autoRelayoutOnResize(this);
     const save = Save.current();
-    const { cx, width, height } = screenAnchors(this);
+    const { cx, width, height, safeBottom } = screenAnchors(this);
     this.add.text(cx, height * 0.08, "STATS & ACHIEVEMENTS", { fontSize: "22px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
 
     const bestRush = save.stats.bestBossRushSeconds;
@@ -52,6 +52,6 @@ export class StatsScene extends Phaser.Scene {
       ay += 32;
     });
 
-    makeButton(this, cx, height - 26, "Back", () => sceneTransition(this, "WorldMap"), { color: "#00ff00" });
+    makeButton(this, cx, safeBottom - 26, "Back", () => sceneTransition(this, "WorldMap"), { color: "#00ff00" });
   }
 }

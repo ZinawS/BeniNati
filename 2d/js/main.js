@@ -8,6 +8,23 @@ import { StatsScene } from "./scenes/StatsScene.js";
 import { GameScene } from "./scenes/GameScene.js";
 import { initOrientationGuard } from "./ui/orientationGuard.js";
 
+// `window.innerWidth/innerHeight` is *not* the actually-visible area on a
+// mobile browser — it reports the layout viewport, which stays a fixed size
+// regardless of whether the address bar/toolbar is currently showing or has
+// collapsed away, so it can be taller than what's really on screen. Content
+// anchored to the top edge (score/pause/sound icons) sized against that
+// inflated height can end up rendered partly *underneath* the browser's own
+// chrome — invisible, not actually cropped by our own CSS. `visualViewport`
+// (iOS Safari 13+/Chrome Android, both real targets here) reports the
+// genuinely visible area and fires its own resize event when the chrome
+// shows/hides, which `window`'s resize event does not reliably do.
+function currentViewportSize() {
+  const vv = window.visualViewport;
+  return vv ? { width: vv.width, height: vv.height } : { width: window.innerWidth, height: window.innerHeight };
+}
+
+const initialSize = currentViewportSize();
+
 const config = {
   type: Phaser.AUTO,
   parent: "game-container",
@@ -33,14 +50,33 @@ const config = {
   // collapsing), leaving the game rendered at 800px wide well past what a
   // ~380px-wide phone screen can show — which pushes the right-anchored
   // controls (up/down, action, pause, sound icon) off-screen entirely, with
-  // no way to reach them. Seeding it with the actual window size up front
+  // no way to reach them. Seeding it with the actual visible size up front
   // avoids depending on that first auto-correction firing correctly at all.
   scale: {
     mode: Phaser.Scale.RESIZE,
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width: initialSize.width,
+    height: initialSize.height,
   },
 };
 
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
 initOrientationGuard();
+
+// Re-sync whenever the *actually visible* area changes — not just window
+// resize/orientation, but also the mobile browser's own address bar
+// collapsing or expanding mid-session, which changes visualViewport without
+// necessarily firing a window resize event at all.
+//
+// visualViewport can fire its own resize event very early — before Phaser's
+// Scale Manager has finished booting — and calling game.scale.resize() that
+// early throws (confirmed: "Cannot set properties of undefined (setting
+// 'width')" from inside Phaser's own resize()). game.isBooted guards against
+// that; RESIZE mode already seeds from the correct initial size anyway, so
+// skipping a too-early resize call here loses nothing.
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", () => {
+    if (!game.isBooted) return;
+    const size = currentViewportSize();
+    game.scale.resize(size.width, size.height);
+  });
+}

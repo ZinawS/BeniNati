@@ -20,7 +20,7 @@ export class WorldMap extends Phaser.Scene {
     fadeInScene(this);
     autoRelayoutOnResize(this);
     const save = Save.current();
-    const { cx, width, height } = screenAnchors(this);
+    const { cx, width, height, safeBottom } = screenAnchors(this);
     this.add.text(cx, height * 0.05, `${this.playerName}'s Journey`, { fontSize: "20px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
     this.resetArmed = false;
 
@@ -86,7 +86,7 @@ export class WorldMap extends Phaser.Scene {
     }
 
     const totalButtons = buttons.length + 1; // + Reset Progress
-    const btnRowY = height - 55;
+    const btnRowY = safeBottom - 55;
     const btnGap = Math.min(130, width / (totalButtons + 1));
     const btnStartX = cx - (btnGap * (totalButtons - 1)) / 2;
     buttons.forEach(([label, onClick, color], i) => {
@@ -104,6 +104,6 @@ export class WorldMap extends Phaser.Scene {
       }
     }, { fontSize: "12px", color: "#884444" });
 
-    makeButton(this, cx, height - 24, "Back to Menu", () => sceneTransition(this, "MainMenu"), { fontSize: "13px", color: "#aaaaaa" });
+    makeButton(this, cx, safeBottom - 24, "Back to Menu", () => sceneTransition(this, "MainMenu"), { fontSize: "13px", color: "#aaaaaa" });
   }
 }

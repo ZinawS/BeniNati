@@ -4,6 +4,30 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is
 [Semantic Versioning](https://semver.org/).
 
+## [1.13.0] — Mobile viewport/HUD fixes (2D game)
+
+### Fixed
+- **Root cause of persistent top-HUD cropping on real mobile browsers**:
+  `window.innerWidth/innerHeight` reports the *layout* viewport, which stays
+  a fixed size regardless of whether the browser's address bar/toolbar is
+  currently showing — it does not shrink to match the actually-visible area.
+  Content sized/anchored against that inflated height (score text, pause/
+  sound icons) could end up rendered partly underneath the browser's own
+  chrome — genuinely invisible, not just a CSS clipping issue. Switched to
+  `window.visualViewport`, which reports the real visible area and fires its
+  own resize event when the chrome shows/hides mid-session (which `window`'s
+  own resize event does not reliably do). Guarded against a real crash this
+  surfaced during testing: `visualViewport` can fire its first resize event
+  before Phaser's Scale Manager finishes booting, and calling
+  `game.scale.resize()` that early threw — now gated on `game.isBooted`.
+- **"Back" button anchored below the visible area on short/notched phones**
+  across Settings, How To Play, Stats, Profile Select, and World Map — all
+  five used to anchor at `screenHeight - N`, which (combined with the above
+  inflated-height issue) could push the button below the fold. Added
+  `safeAreaInsets()`-aware `safeBottom` to `screenAnchors()` and switched all
+  five to it, so on a phone with a bottom safe-area inset (home indicator,
+  rounded corners in landscape) the button also clears that.
+
 ## [1.12.0] — 3D game: 4 real levels (was a single-scene prototype)
 
 The `game3d/` Babylon.js prototype is now a small, genuinely playable game

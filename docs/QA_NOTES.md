@@ -24,6 +24,17 @@ was run against a live page on real devices. Treat "Verified" as real, and
   `2d/dist/bundle.js` passes `node --check`. Confirmed it references the global
   `Phaser` (22 call sites) rather than trying to bundle Phaser itself, which is the
   expected behavior since it's loaded separately via the CDN `<script>` tag.
+- **visualViewport migration + Back button safe-bottom positioning** — same
+  exposed-`Phaser.Game` technique: forced navigation to Settings/How To
+  Play/Stats/Profile Select/World Map on a short mobile-landscape viewport
+  (844×390) and read each "Back"/"Back to Menu" text object's actual `x`/`y`
+  directly off the live scene, confirming every one lands well within
+  `scene.scale.height` (360–366 out of 390). This also caught a real crash
+  before it could ship: the very first `visualViewport` resize event fired
+  before `game.isBooted`, and `game.scale.resize()` threw — reproduced,
+  fixed, and re-verified clean. What this did **not** verify: an actual
+  non-zero `safe-area-inset-bottom` value, since headless Chromium doesn't
+  simulate a real device's notch/home-indicator — see "Not verified" below.
 - **Ring combo, jump juice, Photo Mode** — verified end-to-end in a real headless
   browser, not just by reading the code: temporarily exposed the `Phaser.Game`
   instance on `window` (reverted before committing), navigated through the real

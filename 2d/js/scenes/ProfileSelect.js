@@ -11,11 +11,11 @@ export class ProfileSelect extends Phaser.Scene {
     fadeInScene(this);
     autoRelayoutOnResize(this);
     Profiles.ensureDefaults();
-    const { cx, height } = screenAnchors(this);
+    const { cx, height, safeBottom } = screenAnchors(this);
     this.add.text(cx, height * 0.09, "Who's Playing?", { fontSize: "30px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
     this.renderProfiles();
 
-    makeButton(this, cx, height - 24, "Back to Menu", () => sceneTransition(this, "MainMenu"), { fontSize: "14px", color: "#aaaaaa" });
+    makeButton(this, cx, safeBottom - 24, "Back to Menu", () => sceneTransition(this, "MainMenu"), { fontSize: "14px", color: "#aaaaaa" });
   }
 
   renderProfiles() {

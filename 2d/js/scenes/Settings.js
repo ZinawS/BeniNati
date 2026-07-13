@@ -16,7 +16,7 @@ export class Settings extends Phaser.Scene {
     fadeInScene(this);
     autoRelayoutOnResize(this);
     const save = Save.current();
-    const { cx, height } = screenAnchors(this);
+    const { cx, height, safeBottom } = screenAnchors(this);
     this.add.text(cx, height * 0.09, "SETTINGS", { fontSize: "30px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
 
     const toggle = (y, key, label, desc, color = "#fff") => {
@@ -61,6 +61,6 @@ export class Settings extends Phaser.Scene {
       }, { fontSize: "18px", color: "#ff6666" });
     }
 
-    makeButton(this, cx, height - 30, "Back", () => sceneTransition(this, "WorldMap"), { color: "#00ff00" });
+    makeButton(this, cx, safeBottom - 30, "Back", () => sceneTransition(this, "WorldMap"), { color: "#00ff00" });
   }
 }

@@ -2,6 +2,7 @@
 // (hover/press feedback, click sound, fade transitions) instead of each scene
 // re-implementing its own interactive-text boilerplate.
 import { SFX } from "../systems/audio.js";
+import { safeAreaInsets } from "../systems/platform.js";
 
 /**
  * A clickable text "button" with hover scale-up, press squash, and click sound.
@@ -73,7 +74,22 @@ export function fadeInScene(scene) {
 export function screenAnchors(scene) {
   const width = scene.scale.width;
   const height = scene.scale.height;
-  return { width, height, cx: width / 2, cy: height / 2, right: width, bottom: height, left: 0, top: 0 };
+  const inset = safeAreaInsets();
+  return {
+    width,
+    height,
+    cx: width / 2,
+    cy: height / 2,
+    right: width - inset.right,
+    // Menu screens routinely anchor a "Back" button at `height - N` — on a
+    // phone with a bottom safe-area inset (home indicator, rounded corners
+    // in landscape), that math can land the button partly behind it.
+    // `safeBottom` is what those call sites should subtract N from instead.
+    bottom: height,
+    safeBottom: height - inset.bottom,
+    left: inset.left,
+    top: inset.top,
+  };
 }
 
 /**

@@ -1143,6 +1143,24 @@
   };
   var Music = new MusicSystem();
 
+  // 2d/js/systems/platform.js
+  var isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  function safeAreaInsets() {
+    if (typeof document === "undefined") return { top: 0, right: 0, bottom: 0, left: 0 };
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left);";
+    document.body.appendChild(probe);
+    const cs = getComputedStyle(probe);
+    const insets = {
+      top: parseFloat(cs.paddingTop) || 0,
+      right: parseFloat(cs.paddingRight) || 0,
+      bottom: parseFloat(cs.paddingBottom) || 0,
+      left: parseFloat(cs.paddingLeft) || 0
+    };
+    probe.remove();
+    return insets;
+  }
+
   // 2d/js/ui/uiHelpers.js
   function makeButton(scene, x, y, label, onClick, opts = {}) {
     var _a, _b;
@@ -1194,7 +1212,22 @@
   function screenAnchors(scene) {
     const width = scene.scale.width;
     const height = scene.scale.height;
-    return { width, height, cx: width / 2, cy: height / 2, right: width, bottom: height, left: 0, top: 0 };
+    const inset = safeAreaInsets();
+    return {
+      width,
+      height,
+      cx: width / 2,
+      cy: height / 2,
+      right: width - inset.right,
+      // Menu screens routinely anchor a "Back" button at `height - N` — on a
+      // phone with a bottom safe-area inset (home indicator, rounded corners
+      // in landscape), that math can land the button partly behind it.
+      // `safeBottom` is what those call sites should subtract N from instead.
+      bottom: height,
+      safeBottom: height - inset.bottom,
+      left: inset.left,
+      top: inset.top
+    };
   }
   function autoRelayoutOnResize(scene) {
     let last = { width: scene.scale.width, height: scene.scale.height };
@@ -1245,24 +1278,6 @@
     const timer = scene.time.addEvent({ delay: 800, loop: true, callback: refresh });
     scene.events.once("shutdown", () => timer.remove());
     return icon;
-  }
-
-  // 2d/js/systems/platform.js
-  var isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-  function safeAreaInsets() {
-    if (typeof document === "undefined") return { top: 0, right: 0, bottom: 0, left: 0 };
-    const probe = document.createElement("div");
-    probe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left);";
-    document.body.appendChild(probe);
-    const cs = getComputedStyle(probe);
-    const insets = {
-      top: parseFloat(cs.paddingTop) || 0,
-      right: parseFloat(cs.paddingRight) || 0,
-      bottom: parseFloat(cs.paddingBottom) || 0,
-      left: parseFloat(cs.paddingLeft) || 0
-    };
-    probe.remove();
-    return insets;
   }
 
   // 2d/js/ui/soundSetupModal.js
@@ -1379,10 +1394,10 @@
       fadeInScene(this);
       autoRelayoutOnResize(this);
       Profiles.ensureDefaults();
-      const { cx, height } = screenAnchors(this);
+      const { cx, height, safeBottom } = screenAnchors(this);
       this.add.text(cx, height * 0.09, "Who's Playing?", { fontSize: "30px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
       this.renderProfiles();
-      makeButton(this, cx, height - 24, "Back to Menu", () => sceneTransition(this, "MainMenu"), { fontSize: "14px", color: "#aaaaaa" });
+      makeButton(this, cx, safeBottom - 24, "Back to Menu", () => sceneTransition(this, "MainMenu"), { fontSize: "14px", color: "#aaaaaa" });
     }
     renderProfiles() {
       if (this.profileContainer) this.profileContainer.forEach((o) => o.destroy());
@@ -1450,7 +1465,7 @@
     create() {
       fadeInScene(this);
       autoRelayoutOnResize(this);
-      const { cx, width, height } = screenAnchors(this);
+      const { cx, width, height, safeBottom } = screenAnchors(this);
       this.add.text(cx, height * 0.08, "HOW TO PLAY", { fontSize: "26px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
       const lines = [
         ["Move", "Left/Right arrows, gamepad, or the on-screen \u25C0\u25B6 buttons on your left thumb."],
@@ -1479,7 +1494,7 @@
         this.add.text(colX, y, title + ":", { fontSize: "13px", fill: "#66ccff", fontStyle: "bold" });
         this.add.text(colX, y + 15, desc, { fontSize: "11px", fill: "#eee", wordWrap: { width: colWidth } });
       });
-      makeButton(this, cx, height - 26, "Back", () => sceneTransition(this, this.returnTo), { color: "#00ff00" });
+      makeButton(this, cx, safeBottom - 26, "Back", () => sceneTransition(this, this.returnTo), { color: "#00ff00" });
     }
   };
 
@@ -1497,7 +1512,7 @@
       fadeInScene(this);
       autoRelayoutOnResize(this);
       const save = Save.current();
-      const { cx, height } = screenAnchors(this);
+      const { cx, height, safeBottom } = screenAnchors(this);
       this.add.text(cx, height * 0.09, "SETTINGS", { fontSize: "30px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
       const toggle = (y, key, label, desc, color = "#fff") => {
         const text = () => `${label}: ${save.settings[key] ? "ON" : "OFF"}`;
@@ -1535,7 +1550,7 @@
           nmBtn.setText(nmLabel());
         }, { fontSize: "18px", color: "#ff6666" });
       }
-      makeButton(this, cx, height - 30, "Back", () => sceneTransition(this, "WorldMap"), { color: "#00ff00" });
+      makeButton(this, cx, safeBottom - 30, "Back", () => sceneTransition(this, "WorldMap"), { color: "#00ff00" });
     }
   };
 
@@ -1555,7 +1570,7 @@
       fadeInScene(this);
       autoRelayoutOnResize(this);
       const save = Save.current();
-      const { cx, width, height } = screenAnchors(this);
+      const { cx, width, height, safeBottom } = screenAnchors(this);
       this.add.text(cx, height * 0.05, `${this.playerName}'s Journey`, { fontSize: "20px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
       this.resetArmed = false;
       const cellW = 150, cellH = height * 0.2;
@@ -1608,7 +1623,7 @@
         }, "#ffee66"]);
       }
       const totalButtons = buttons.length + 1;
-      const btnRowY = height - 55;
+      const btnRowY = safeBottom - 55;
       const btnGap = Math.min(130, width / (totalButtons + 1));
       const btnStartX = cx - btnGap * (totalButtons - 1) / 2;
       buttons.forEach(([label, onClick, color], i) => {
@@ -1627,7 +1642,7 @@
           this.scene.restart();
         }
       }, { fontSize: "12px", color: "#884444" });
-      makeButton(this, cx, height - 24, "Back to Menu", () => sceneTransition(this, "MainMenu"), { fontSize: "13px", color: "#aaaaaa" });
+      makeButton(this, cx, safeBottom - 24, "Back to Menu", () => sceneTransition(this, "MainMenu"), { fontSize: "13px", color: "#aaaaaa" });
     }
   };
 
@@ -1665,7 +1680,7 @@
       fadeInScene(this);
       autoRelayoutOnResize(this);
       const save = Save.current();
-      const { cx, width, height } = screenAnchors(this);
+      const { cx, width, height, safeBottom } = screenAnchors(this);
       this.add.text(cx, height * 0.08, "STATS & ACHIEVEMENTS", { fontSize: "22px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
       const bestRush = save.stats.bestBossRushSeconds;
       const bestRushLabel = bestRush !== null && bestRush !== void 0 ? `${Math.floor(bestRush / 60)}:${String(bestRush % 60).padStart(2, "0")}` : "not run yet";
@@ -1698,7 +1713,7 @@
         this.add.text(rightX, ay + 14, desc, { fontSize: "11px", fill: got ? "#ccc" : "#555", wordWrap: { width: achWrap } });
         ay += 32;
       });
-      makeButton(this, cx, height - 26, "Back", () => sceneTransition(this, "WorldMap"), { color: "#00ff00" });
+      makeButton(this, cx, safeBottom - 26, "Back", () => sceneTransition(this, "WorldMap"), { color: "#00ff00" });
     }
   };
 
@@ -2769,6 +2784,11 @@ Click to continue`,
   }
 
   // 2d/js/main.js
+  function currentViewportSize() {
+    const vv = window.visualViewport;
+    return vv ? { width: vv.width, height: vv.height } : { width: window.innerWidth, height: window.innerHeight };
+  }
+  var initialSize = currentViewportSize();
   var config = {
     type: Phaser.AUTO,
     parent: "game-container",
@@ -2794,14 +2814,21 @@ Click to continue`,
     // collapsing), leaving the game rendered at 800px wide well past what a
     // ~380px-wide phone screen can show — which pushes the right-anchored
     // controls (up/down, action, pause, sound icon) off-screen entirely, with
-    // no way to reach them. Seeding it with the actual window size up front
+    // no way to reach them. Seeding it with the actual visible size up front
     // avoids depending on that first auto-correction firing correctly at all.
     scale: {
       mode: Phaser.Scale.RESIZE,
-      width: window.innerWidth,
-      height: window.innerHeight
+      width: initialSize.width,
+      height: initialSize.height
     }
   };
-  new Phaser.Game(config);
+  var game = new Phaser.Game(config);
   initOrientationGuard();
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", () => {
+      if (!game.isBooted) return;
+      const size = currentViewportSize();
+      game.scale.resize(size.width, size.height);
+    });
+  }
 })();
