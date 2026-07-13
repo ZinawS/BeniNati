@@ -124,7 +124,13 @@ export class GameScene extends Phaser.Scene {
     this.controls = new InputController(this);
 
     const inset = safeAreaInsets();
-    this.scoreText = this.add.text(16 + inset.left, 16 + inset.top, "", { fontSize: "18px", fill: "#fff", fontStyle: "bold", backgroundColor: "#000" }).setScrollFactor(0);
+    // The HUD status line ("Name | Rings: N | World - Stage") was a flat
+    // 18px tuned for a landscape-width screen — on a narrow portrait phone
+    // (~390px) it ran off the right edge entirely, truncated mid-word
+    // (confirmed via screenshot). Scales with actual width, same pattern
+    // used for the menu scenes' titles.
+    this.hudFontScale = Math.max(0.55, Math.min(1, this.scale.width / 700));
+    this.scoreText = this.add.text(16 + inset.left, 16 + inset.top, "", { fontSize: `${18 * this.hudFontScale}px`, fill: "#fff", fontStyle: "bold", backgroundColor: "#000" }).setScrollFactor(0);
     this.scoreText.setPadding(10, 10, 10, 10);
     this.updateHUD();
     this.soundIcon = addSoundIndicator(this, this.scale.width - 36 - inset.right, 56 + inset.top);
@@ -136,7 +142,11 @@ export class GameScene extends Phaser.Scene {
       const inset = safeAreaInsets();
       if (this.soundIcon) this.soundIcon.setPosition(gameSize.width - 36 - inset.right, 56 + inset.top);
       if (this.pauseIcon) this.pauseIcon.setPosition(gameSize.width - 36 - inset.right, 24 + inset.top);
-      if (this.scoreText) this.scoreText.setPosition(16 + inset.left, 16 + inset.top);
+      if (this.scoreText) {
+        this.scoreText.setPosition(16 + inset.left, 16 + inset.top);
+        this.hudFontScale = Math.max(0.55, Math.min(1, gameSize.width / 700));
+        this.scoreText.setFontSize(18 * this.hudFontScale);
+      }
       if (this.bossBarBg) this.drawBossBar();
     };
     this.scale.on("resize", this._resizeHandler);

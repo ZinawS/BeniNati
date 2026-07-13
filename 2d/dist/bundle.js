@@ -1370,17 +1370,19 @@
       const { cx, height, width } = screenAnchors(this);
       const inset = safeAreaInsets();
       addSoundIndicator(this, width - 36 - inset.right, 24 + inset.top);
-      this.add.text(cx, height * 0.18, "NATI & BENIYAS'S", { fontSize: "26px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
-      const title = this.add.text(cx, height * 0.26, "SPEEDY ADVENTURE!", { fontSize: "40px", fill: "#0066ff", fontStyle: "bold", stroke: "#fff", strokeThickness: 4 }).setOrigin(0.5);
+      const fs = Math.max(0.55, Math.min(1, width / 700));
+      const wrapWidth = width - 40;
+      this.add.text(cx, height * 0.18, "NATI & BENIYAS'S", { fontSize: `${26 * fs}px`, fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
+      const title = this.add.text(cx, height * 0.26, "SPEEDY ADVENTURE!", { fontSize: `${40 * fs}px`, fill: "#0066ff", fontStyle: "bold", stroke: "#fff", strokeThickness: 4 }).setOrigin(0.5);
       this.tweens.add({ targets: title, scale: { from: 0.9, to: 1 }, duration: 900, ease: "Bounce.easeOut" });
-      this.add.text(cx, height * 0.35, `${VILLAIN} has captured your friends across ${WORLDS.length} worlds!`, { fontSize: "16px", fill: "#ddd" }).setOrigin(0.5);
-      this.add.text(cx, height * 0.39, "Rescue them all and stop his ultimate machine!", { fontSize: "16px", fill: "#ddd" }).setOrigin(0.5);
-      makeButton(this, cx, height * 0.57, "[ PLAY ]", () => {
+      this.add.text(cx, height * 0.35, `${VILLAIN} has captured your friends across ${WORLDS.length} worlds!`, { fontSize: `${16 * fs}px`, fill: "#ddd", align: "center", wordWrap: { width: wrapWidth } }).setOrigin(0.5);
+      this.add.text(cx, height * 0.41, "Rescue them all and stop his ultimate machine!", { fontSize: `${16 * fs}px`, fill: "#ddd", align: "center", wordWrap: { width: wrapWidth } }).setOrigin(0.5);
+      makeButton(this, cx, height * 0.58, "[ PLAY ]", () => {
         getAudioCtx().resume();
         sceneTransition(this, "ProfileSelect");
-      }, { fontSize: "34px", color: "#00ff00" });
-      makeButton(this, cx, height * 0.68, "[ How To Play ]", () => sceneTransition(this, "HowToPlay"), { fontSize: "16px" });
-      this.add.text(cx, height * 0.8, "Pick or create your player on the next screen.", { fontSize: "13px", fill: "#66ccff" }).setOrigin(0.5);
+      }, { fontSize: `${34 * fs}px`, color: "#00ff00" });
+      makeButton(this, cx, height * 0.7, "[ How To Play ]", () => sceneTransition(this, "HowToPlay"), { fontSize: `${16 * fs}px` });
+      this.add.text(cx, height * 0.8, "Pick or create your player on the next screen.", { fontSize: `${13 * fs}px`, fill: "#66ccff", align: "center", wordWrap: { width: wrapWidth } }).setOrigin(0.5);
       maybeShowSoundSetup(this);
     }
   };
@@ -1408,7 +1410,7 @@
       };
       const { width, height } = screenAnchors(this);
       const cellW = 180, cellH = 170;
-      const cols = Math.max(3, Math.min(6, Math.floor(width / cellW)));
+      const cols = Math.max(1, Math.min(6, Math.floor(width / cellW)));
       const gridWidth = cols * cellW;
       const startX = (width - gridWidth) / 2 + cellW / 2;
       const startY = Math.min(160, height * 0.35);
@@ -1485,15 +1487,37 @@
       const twoCol = width >= 640;
       const colWidth = twoCol ? width / 2 - 40 : width - 80;
       const startY = height * 0.18;
-      const rowH = Math.max(30, Math.min(34, height * 0.72 / Math.ceil(lines.length / (twoCol ? 2 : 1))));
-      lines.forEach(([title, desc], i) => {
+      const descFontSize = width < 500 ? 10 : 11;
+      const numRows = Math.ceil(lines.length / (twoCol ? 2 : 1));
+      const rowHeights = new Array(numRows).fill(0);
+      const created = lines.map(([title, desc], i) => {
         const col = twoCol ? i % 2 : 0;
         const row2 = twoCol ? Math.floor(i / 2) : i;
         const colX = twoCol ? 40 + col * (width / 2) : 40;
-        const y = startY + row2 * rowH;
-        this.add.text(colX, y, title + ":", { fontSize: "13px", fill: "#66ccff", fontStyle: "bold" });
-        this.add.text(colX, y + 15, desc, { fontSize: "11px", fill: "#eee", wordWrap: { width: colWidth } });
+        const titleText = this.add.text(colX, 0, title + ":", { fontSize: "13px", fill: "#66ccff", fontStyle: "bold" });
+        const descText = this.add.text(colX, 0, desc, { fontSize: `${descFontSize}px`, fill: "#eee", wordWrap: { width: colWidth } });
+        const entryHeight = titleText.height + 3 + descText.height;
+        rowHeights[row2] = Math.max(rowHeights[row2], entryHeight);
+        return { row: row2, titleText, descText };
       });
+      const rowGap = 6;
+      const rowY = [];
+      let cursor = 0;
+      for (let r = 0; r < numRows; r++) {
+        rowY[r] = cursor;
+        cursor += rowHeights[r] + rowGap;
+      }
+      const container = this.add.container(0, startY);
+      created.forEach(({ row: row2, titleText, descText }) => {
+        titleText.setY(rowY[row2]);
+        descText.setY(rowY[row2] + titleText.height + 3);
+        container.add([titleText, descText]);
+      });
+      const availableHeight = safeBottom - 40 - startY;
+      if (cursor > availableHeight) {
+        const scale = Math.max(0.55, availableHeight / cursor);
+        container.setScale(scale);
+      }
       makeButton(this, cx, safeBottom - 26, "Back", () => sceneTransition(this, this.returnTo), { color: "#00ff00" });
     }
   };
@@ -1512,7 +1536,8 @@
       fadeInScene(this);
       autoRelayoutOnResize(this);
       const save = Save.current();
-      const { cx, height, safeBottom } = screenAnchors(this);
+      const { cx, width, height, safeBottom } = screenAnchors(this);
+      const wrapWidth = width - 40;
       this.add.text(cx, height * 0.09, "SETTINGS", { fontSize: "30px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
       const toggle = (y, key, label, desc, color = "#fff") => {
         const text = () => `${label}: ${save.settings[key] ? "ON" : "OFF"}`;
@@ -1521,7 +1546,7 @@
           Save.persist();
           btn.setText(text());
         }, { fontSize: "20px", color });
-        this.add.text(cx, y + 24, desc, { fontSize: "12px", fill: "#aaa" }).setOrigin(0.5);
+        this.add.text(cx, y + 24, desc, { fontSize: "12px", fill: "#aaa", align: "center", wordWrap: { width: wrapWidth } }).setOrigin(0.5);
       };
       const volumeControl = (y, settingsKey, label, desc, color = "#fff") => {
         const text = () => `${label}: ${volumeBar(save.settings[settingsKey])} ${Math.round(save.settings[settingsKey] * 100)}%`;
@@ -1536,7 +1561,7 @@
             else Music.playTheme(0);
           }
         }, { fontSize: "18px", color });
-        this.add.text(cx, y + 24, desc, { fontSize: "12px", fill: "#aaa" }).setOrigin(0.5);
+        this.add.text(cx, y + 24, desc, { fontSize: "12px", fill: "#aaa", align: "center", wordWrap: { width: wrapWidth } }).setOrigin(0.5);
       };
       volumeControl(height * 0.24, "sfxVolume", "Sound Effects", "Jump, rings, hits, boss cues \u2014 tap to cycle the volume.");
       volumeControl(height * 0.39, "musicVolume", "Music", "Background soundtrack \u2014 tap to cycle the volume, independent of sound effects.");
@@ -1571,14 +1596,19 @@
       autoRelayoutOnResize(this);
       const save = Save.current();
       const { cx, width, height, safeBottom } = screenAnchors(this);
-      this.add.text(cx, height * 0.05, `${this.playerName}'s Journey`, { fontSize: "20px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
+      const titleY = height * 0.05;
+      this.add.text(cx, titleY, `${this.playerName}'s Journey`, { fontSize: "20px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
       this.resetArmed = false;
-      const cellW = 150, cellH = height * 0.2;
-      const cols = Math.max(5, Math.min(WORLDS.length, Math.floor(width / cellW)));
+      const cellW = 150;
+      const cols = Math.max(1, Math.min(WORLDS.length, Math.floor(width / cellW)));
       const rows = Math.ceil(WORLDS.length / cols);
+      const gridTopY = titleY + 30;
+      const reservedBelowGrid = 150;
+      const availableGridHeight = Math.max(rows * 60, height - gridTopY - reservedBelowGrid);
+      const cellH = Math.min(height * 0.2, availableGridHeight / rows);
+      const startY = gridTopY + cellH * 0.5;
       const gridWidth = cols * cellW;
       const startX = (width - gridWidth) / 2 + cellW / 2;
-      const startY = height * 0.22;
       WORLDS.forEach((world, i) => {
         const x = startX + i % cols * cellW;
         const y = startY + Math.floor(i / cols) * cellH;
@@ -1596,11 +1626,10 @@
         }
       });
       const gridBottom = startY + (rows - 1) * cellH + cellH * 0.5;
-      const infoY = Math.min(gridBottom + 22, height - 120);
+      const infoY = gridBottom + 18;
       this.add.text(cx, infoY, `Abilities: ${Save.abilityListText()}`, { fontSize: "13px", fill: "#66ccff" }).setOrigin(0.5);
       if (save.gameCompleted) {
-        this.add.text(cx, infoY + 22, `You defeated ${VILLAIN} and rescued everyone! THE END.`, { fontSize: "14px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
-        this.add.text(cx, infoY + 42, "New Game+ and Nightmare Mode are available in Settings!", { fontSize: "12px", fill: "#aaddff" }).setOrigin(0.5);
+        this.add.text(cx, infoY + 18, `You defeated ${VILLAIN}! New Game+ & Nightmare Mode are in Settings.`, { fontSize: "12px", fill: "#ffcc00", fontStyle: "bold", align: "center", wordWrap: { width: width - 40 } }).setOrigin(0.5);
       }
       const buttons = [
         ["[ How To Play ]", () => sceneTransition(this, "HowToPlay", { returnTo: "WorldMap" }), "#ffcc00"],
@@ -1622,26 +1651,60 @@
           });
         }, "#ffee66"]);
       }
-      const totalButtons = buttons.length + 1;
-      const btnRowY = safeBottom - 55;
-      const btnGap = Math.min(130, width / (totalButtons + 1));
-      const btnStartX = cx - btnGap * (totalButtons - 1) / 2;
-      buttons.forEach(([label, onClick, color], i) => {
-        makeButton(this, btnStartX + btnGap * i, btnRowY, label, onClick, { fontSize: "12px", color });
+      const allButtons = [...buttons, ["Reset Progress", null, "#884444"]];
+      const probe = this.add.text(0, 0, "", { fontStyle: "bold" }).setVisible(false);
+      function widestLabelAt(labels, size) {
+        probe.setFontSize(size);
+        return Math.max(...labels.map((label) => {
+          probe.setText(label);
+          return probe.width;
+        }));
+      }
+      function fits(labels, size, gap) {
+        return widestLabelAt(labels, size) <= gap - 6;
+      }
+      const oneRowLabels = allButtons.map(([label]) => label);
+      let btnRows = [allButtons];
+      let btnFontSize = 8;
+      let oneRowGap = Math.min(130, width / (oneRowLabels.length + 1));
+      let picked = [12, 11, 10, 9, 8].find((size) => fits(oneRowLabels, size, oneRowGap));
+      if (picked) {
+        btnFontSize = picked;
+      } else {
+        const half = Math.ceil(allButtons.length / 2);
+        btnRows = [allButtons.slice(0, half), allButtons.slice(half)];
+        const maxRowLabels = Math.max(...btnRows.map((r) => r.length));
+        const twoRowGap = Math.min(130, width / (maxRowLabels + 1));
+        btnFontSize = [10, 9, 8].find((size) => btnRows.every((r) => fits(r.map(([l]) => l), size, twoRowGap))) || 8;
+      }
+      probe.destroy();
+      const rowSpacing = btnFontSize + 20;
+      const btnBaseY = safeBottom - 55 - (btnRows.length - 1) * rowSpacing;
+      let resetText = null;
+      btnRows.forEach((rowButtons, rowIndex) => {
+        const gap = Math.min(130, width / (rowButtons.length + 1));
+        const rowStartX = cx - gap * (rowButtons.length - 1) / 2;
+        const rowY = btnBaseY + rowIndex * rowSpacing;
+        rowButtons.forEach(([label, onClick, color], i) => {
+          if (onClick) {
+            makeButton(this, rowStartX + gap * i, rowY, label, onClick, { fontSize: `${btnFontSize}px`, color });
+          } else {
+            resetText = makeButton(this, rowStartX + gap * i, rowY, label, () => {
+              if (!this.resetArmed) {
+                this.resetArmed = true;
+                resetText.setText("Click again to confirm!");
+                this.time.delayedCall(3e3, () => {
+                  this.resetArmed = false;
+                  resetText.setText("Reset Progress");
+                });
+              } else {
+                Save.reset();
+                this.scene.restart();
+              }
+            }, { fontSize: `${btnFontSize}px`, color });
+          }
+        });
       });
-      const resetText = makeButton(this, btnStartX + btnGap * buttons.length, btnRowY, "Reset Progress", () => {
-        if (!this.resetArmed) {
-          this.resetArmed = true;
-          resetText.setText("Click again to confirm!");
-          this.time.delayedCall(3e3, () => {
-            this.resetArmed = false;
-            resetText.setText("Reset Progress");
-          });
-        } else {
-          Save.reset();
-          this.scene.restart();
-        }
-      }, { fontSize: "12px", color: "#884444" });
       makeButton(this, cx, safeBottom - 24, "Back to Menu", () => sceneTransition(this, "MainMenu"), { fontSize: "13px", color: "#aaaaaa" });
     }
   };
@@ -1966,7 +2029,8 @@
       }, null, this);
       this.controls = new InputController(this);
       const inset = safeAreaInsets();
-      this.scoreText = this.add.text(16 + inset.left, 16 + inset.top, "", { fontSize: "18px", fill: "#fff", fontStyle: "bold", backgroundColor: "#000" }).setScrollFactor(0);
+      this.hudFontScale = Math.max(0.55, Math.min(1, this.scale.width / 700));
+      this.scoreText = this.add.text(16 + inset.left, 16 + inset.top, "", { fontSize: `${18 * this.hudFontScale}px`, fill: "#fff", fontStyle: "bold", backgroundColor: "#000" }).setScrollFactor(0);
       this.scoreText.setPadding(10, 10, 10, 10);
       this.updateHUD();
       this.soundIcon = addSoundIndicator(this, this.scale.width - 36 - inset.right, 56 + inset.top);
@@ -1976,7 +2040,11 @@
         const inset2 = safeAreaInsets();
         if (this.soundIcon) this.soundIcon.setPosition(gameSize.width - 36 - inset2.right, 56 + inset2.top);
         if (this.pauseIcon) this.pauseIcon.setPosition(gameSize.width - 36 - inset2.right, 24 + inset2.top);
-        if (this.scoreText) this.scoreText.setPosition(16 + inset2.left, 16 + inset2.top);
+        if (this.scoreText) {
+          this.scoreText.setPosition(16 + inset2.left, 16 + inset2.top);
+          this.hudFontScale = Math.max(0.55, Math.min(1, gameSize.width / 700));
+          this.scoreText.setFontSize(18 * this.hudFontScale);
+        }
         if (this.bossBarBg) this.drawBossBar();
       };
       this.scale.on("resize", this._resizeHandler);
@@ -2772,14 +2840,31 @@ Click to continue`,
   };
 
   // 2d/js/ui/orientationGuard.js
+  var DISMISSED_KEY = "nati_beni_portrait_ok_v1";
   function initOrientationGuard() {
     if (!isTouchDevice) return;
     const el = document.getElementById("orientation-guard");
+    const continueBtn = document.getElementById("orientation-continue-btn");
     if (!el) return;
+    let dismissed = false;
+    try {
+      dismissed = sessionStorage.getItem(DISMISSED_KEY) === "1";
+    } catch (e) {
+    }
     const check = () => {
       const portrait = window.innerHeight > window.innerWidth;
-      el.classList.toggle("visible", portrait);
+      el.classList.toggle("visible", portrait && !dismissed);
     };
+    if (continueBtn) {
+      continueBtn.addEventListener("click", () => {
+        dismissed = true;
+        try {
+          sessionStorage.setItem(DISMISSED_KEY, "1");
+        } catch (e) {
+        }
+        check();
+      });
+    }
     check();
     window.addEventListener("resize", check);
     window.addEventListener("orientationchange", check);

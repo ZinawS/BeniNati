@@ -16,7 +16,12 @@ export class Settings extends Phaser.Scene {
     fadeInScene(this);
     autoRelayoutOnResize(this);
     const save = Save.current();
-    const { cx, height, safeBottom } = screenAnchors(this);
+    const { cx, width, height, safeBottom } = screenAnchors(this);
+    // Portrait phones are much narrower than this screen was originally
+    // tuned for — description lines with no wordWrap just ran off both
+    // edges of a 390px-wide screen (confirmed via screenshot) instead of
+    // wrapping to a second line.
+    const wrapWidth = width - 40;
     this.add.text(cx, height * 0.09, "SETTINGS", { fontSize: "30px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
 
     const toggle = (y, key, label, desc, color = "#fff") => {
@@ -26,7 +31,7 @@ export class Settings extends Phaser.Scene {
         Save.persist();
         btn.setText(text());
       }, { fontSize: "20px", color });
-      this.add.text(cx, y + 24, desc, { fontSize: "12px", fill: "#aaa" }).setOrigin(0.5);
+      this.add.text(cx, y + 24, desc, { fontSize: "12px", fill: "#aaa", align: "center", wordWrap: { width: wrapWidth } }).setOrigin(0.5);
     };
 
     /** Tap to cycle 100% -> 75% -> 50% -> 25% -> 0% -> 100%, with a filled/empty block bar for an at-a-glance level. */
@@ -43,7 +48,7 @@ export class Settings extends Phaser.Scene {
           else Music.playTheme(0);
         }
       }, { fontSize: "18px", color });
-      this.add.text(cx, y + 24, desc, { fontSize: "12px", fill: "#aaa" }).setOrigin(0.5);
+      this.add.text(cx, y + 24, desc, { fontSize: "12px", fill: "#aaa", align: "center", wordWrap: { width: wrapWidth } }).setOrigin(0.5);
     };
 
     volumeControl(height * 0.24, "sfxVolume", "Sound Effects", "Jump, rings, hits, boss cues — tap to cycle the volume.");

@@ -279,5 +279,8 @@ on the `resize` event.
 `ui/orientationGuard.js` is intentionally *not* a Phaser scene — it's a plain DOM
 overlay (`#orientation-guard` in `index.html`) toggled by a `resize`/`orientationchange`
 listener, so it works no matter which scene is active, including mid-transition.
-This is a landscape platformer; there's no attempt to make it "work" in portrait,
-only to ask the player to rotate.
+This started as a landscape-only platformer with a hard portrait block, but every
+scene's layout is now genuinely portrait-compatible (verified via screenshot —
+see `docs/QA_NOTES.md`), so the guard is a dismissible one-per-session suggestion
+("Continue in Portrait") rather than a wall — `sessionStorage` remembers the
+dismissal so it doesn't nag again after the player has already chosen to continue.

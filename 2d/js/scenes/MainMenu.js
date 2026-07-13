@@ -17,21 +17,30 @@ export class MainMenu extends Phaser.Scene {
     const inset = safeAreaInsets();
     addSoundIndicator(this, width - 36 - inset.right, 24 + inset.top);
 
-    this.add.text(cx, height * 0.18, "NATI & BENIYAS'S", { fontSize: "26px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
-    const title = this.add.text(cx, height * 0.26, "SPEEDY ADVENTURE!", { fontSize: "40px", fill: "#0066ff", fontStyle: "bold", stroke: "#fff", strokeThickness: 4 }).setOrigin(0.5);
+    // Every font size here used to be a fixed pixel value tuned for a
+    // landscape-width screen (~800px+) — fine there, but "SPEEDY ADVENTURE!"
+    // at a flat 40px is wider than an entire portrait phone screen (390px),
+    // overflowing both edges (confirmed via screenshot after enabling
+    // portrait play). Scales every size down together on narrower screens,
+    // floored so text never becomes illegibly tiny.
+    const fs = Math.max(0.55, Math.min(1, width / 700));
+    const wrapWidth = width - 40;
+
+    this.add.text(cx, height * 0.18, "NATI & BENIYAS'S", { fontSize: `${26 * fs}px`, fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
+    const title = this.add.text(cx, height * 0.26, "SPEEDY ADVENTURE!", { fontSize: `${40 * fs}px`, fill: "#0066ff", fontStyle: "bold", stroke: "#fff", strokeThickness: 4 }).setOrigin(0.5);
     this.tweens.add({ targets: title, scale: { from: 0.9, to: 1 }, duration: 900, ease: "Bounce.easeOut" });
 
-    this.add.text(cx, height * 0.35, `${VILLAIN} has captured your friends across ${WORLDS.length} worlds!`, { fontSize: "16px", fill: "#ddd" }).setOrigin(0.5);
-    this.add.text(cx, height * 0.39, "Rescue them all and stop his ultimate machine!", { fontSize: "16px", fill: "#ddd" }).setOrigin(0.5);
+    this.add.text(cx, height * 0.35, `${VILLAIN} has captured your friends across ${WORLDS.length} worlds!`, { fontSize: `${16 * fs}px`, fill: "#ddd", align: "center", wordWrap: { width: wrapWidth } }).setOrigin(0.5);
+    this.add.text(cx, height * 0.41, "Rescue them all and stop his ultimate machine!", { fontSize: `${16 * fs}px`, fill: "#ddd", align: "center", wordWrap: { width: wrapWidth } }).setOrigin(0.5);
 
-    makeButton(this, cx, height * 0.57, "[ PLAY ]", () => {
+    makeButton(this, cx, height * 0.58, "[ PLAY ]", () => {
       getAudioCtx().resume();
       sceneTransition(this, "ProfileSelect");
-    }, { fontSize: "34px", color: "#00ff00" });
+    }, { fontSize: `${34 * fs}px`, color: "#00ff00" });
 
-    makeButton(this, cx, height * 0.68, "[ How To Play ]", () => sceneTransition(this, "HowToPlay"), { fontSize: "16px" });
+    makeButton(this, cx, height * 0.7, "[ How To Play ]", () => sceneTransition(this, "HowToPlay"), { fontSize: `${16 * fs}px` });
 
-    this.add.text(cx, height * 0.8, "Pick or create your player on the next screen.", { fontSize: "13px", fill: "#66ccff" }).setOrigin(0.5);
+    this.add.text(cx, height * 0.8, "Pick or create your player on the next screen.", { fontSize: `${13 * fs}px`, fill: "#66ccff", align: "center", wordWrap: { width: wrapWidth } }).setOrigin(0.5);
 
     maybeShowSoundSetup(this);
   }

@@ -7,6 +7,31 @@ was run against a live page on real devices. Treat "Verified" as real, and
 
 ## Verified (automated, reproducible)
 
+- **Portrait mode + real mobile layout overflow fixes** — an initial audit
+  script drove scenes via `game.scene.start(key)` called directly on the
+  global scene manager, which does *not* auto-stop the previously active
+  scene (only `this.scene.start()` called from within a scene does that) —
+  it produced screenshots of multiple scenes' content genuinely rendered on
+  top of each other, which looked like a severe real bug at first. Verified
+  that was a test-script artifact, not a product bug, by re-testing with
+  only real button clicks end-to-end (`MainMenu → ProfileSelect →
+  WorldMap → target scene`) and confirming exactly one scene is ever active
+  at each step. The *real* bugs found afterward (world/profile grid
+  clipping, button-row text collisions, HowToPlay row overlap, WorldMap
+  title/grid overlap, MainMenu/Settings/HUD text overflowing screen edges)
+  were each confirmed via an actual screenshot before fixing and again after,
+  across a portrait viewport (390×844) and four mobile-landscape widths
+  (667–1024px). Full navigation reproduction:
+  ```js
+  // From repo root, with the dev server running on :8000 and a temporary
+  // `window.__TEST_GAME__ = game` added to 2d/js/main.js (remove before
+  // committing — not meant to ship):
+  await page.goto("http://localhost:8000/2d/");
+  // click MainMenu's "[ PLAY ]" text object's real screen position (not
+  // game.scene.start()), then ProfileSelect's first profile card, then
+  // whichever scene's button/tile you want to reach — see
+  // audit_2d_clean2.mjs in this session's scratchpad for the full script.
+  ```
 - **JS syntax** — every file under `2d/js/` parses cleanly as an ES module
   (`node --input-type=module --check`).
 - **Import graph resolves** — every `import`/`export` across all modules resolves to
@@ -109,13 +134,20 @@ screen:
   matches Phaser's documented behavior but wasn't watched happening live. If a stage
   transition ever sounds like the music cuts out right after starting, this ordering
   is the first place to look.
-- **Scale.FIT on real mobile viewports** — `main.js` now configures Phaser's Scale
-  Manager (`FIT` + `CENTER_BOTH`) and `main.css` was reworked to be full-bleed on
-  small screens with a decorative bordered window only above 900×700, plus a
-  portrait-orientation guard overlay. The logic is standard Phaser/CSS, but actual
-  letterboxing/touch-button placement on an iPhone/Android in the browser's
-  responsive-design-mode is not the same as on physical hardware (real safe-area
-  insets, real on-screen-keyboard behavior, real notch/dynamic-island).
+- **Layout on real mobile viewports/hardware** — everything in "Verified" above
+  ran under headless Chromium with emulated viewport sizes, not real phone
+  hardware. Playwright's device emulation is a real browser rendering real CSS/
+  Phaser layout, which is why it could catch genuine overflow/overlap bugs — but
+  it doesn't reproduce a physical device's actual on-screen-keyboard behavior,
+  real notch/dynamic-island `safe-area-inset` values (headless reports 0), or
+  real touch latency/multi-touch quirks.
+- **Portrait mode specifically, on real hardware** — dismissing the orientation
+  guard and playing a stage in portrait was verified to render correctly
+  (HUD, touch controls, world tiles, HowToPlay/Settings text) at a 390×844
+  emulated viewport, but real device rotation (the `orientationchange` event
+  firing correctly mid-session, the visualViewport resize handling actually
+  catching a live rotation rather than a fresh page load already in portrait)
+  was not exercised — only "load already in portrait" was tested.
 - **Gamepad mapping** — button/axis indices follow the standard Gamepad API mapping,
   not tested against physical hardware (Xbox/PlayStation/generic controllers can
   differ), and Safari/iOS has historically had partial/inconsistent Gamepad API

@@ -4,6 +4,52 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is
 [Semantic Versioning](https://semver.org/).
 
+## [1.16.0] — Portrait mode + real mobile layout overflow fixes (2D game)
+
+### Added
+- **Portrait play** — the orientation guard used to hard-block portrait with
+  no way past it. It's now a dismissible one-per-session suggestion
+  ("Continue in Portrait" button) — RESIZE mode and every scene's layout
+  already adapt to whatever the real viewport is, so portrait wasn't
+  actually broken, just untested and therefore full of the overflow bugs
+  below.
+
+### Fixed
+Root-caused via real screenshots on a 390×844 portrait viewport and several
+mobile-landscape sizes (667–844px wide), not by reading the layout math and
+assuming it was fine — every one of these was an actual overlapping or
+off-screen element caught on screen, then fixed and re-screenshotted to confirm:
+- **World grid and profile-card grid clipped at both edges** on narrow
+  screens — both `WorldMap.js` and `ProfileSelect.js` forced a minimum
+  column count (5 and 3) regardless of whether that many columns actually
+  fit the real width, overflowing symmetrically off both sides.
+- **WorldMap's bottom button row visibly ran labels together** ("[ Switch
+  Player ]Reset Progress") — the per-button gap was computed from a fixed
+  formula, not the labels' actual rendered width. Now measures real text
+  width per candidate font size and, if even the smallest readable size
+  still doesn't fit one row on a narrow screen, wraps to two rows instead.
+- **HowToPlay's rows overlapped the next row's title** — each row's height
+  was a single fixed guess applied uniformly, but a description's
+  `wordWrap` can spill onto 2-3 lines on a narrow column, which the guess
+  had no way to anticipate. Now measures each row's actual (already-wrapped)
+  height first, positions from real cumulative heights, and — since total
+  content can still be taller than a short screen allows — scales the whole
+  block down to fit as a last resort instead of letting it run off-screen.
+- **WorldMap's title text overlapped the first row of world tiles** on tall
+  portrait screens — the grid's row-0 Y was treated as already being the
+  top edge, but a large auto-computed row height's own half-height pushed
+  the tiles up into the title above them. Fixed by deriving the row-0
+  position *from* a fixed top-edge Y instead of the other way around.
+- **MainMenu's title/paragraphs overflowed both edges** on a 390px-wide
+  portrait phone — "SPEEDY ADVENTURE!" at a flat 40px is wider than the
+  entire screen there, and the description paragraphs had no `wordWrap` at
+  all. Added a width-based font scale plus wordWrap.
+- **Settings' description lines overflowed both edges** for the same
+  missing-`wordWrap` reason as MainMenu.
+- **Gameplay HUD status line truncated mid-word** ("Green Hills - St...") on
+  a narrow portrait screen — same flat-font-size issue, now scales with
+  actual screen width and re-scales live on resize/rotation.
+
 ## [1.15.1] — .wasm MIME type on shared hosting
 
 ### Fixed

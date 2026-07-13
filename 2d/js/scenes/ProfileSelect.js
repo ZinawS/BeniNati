@@ -25,7 +25,11 @@ export class ProfileSelect extends Phaser.Scene {
 
     const { width, height } = screenAnchors(this);
     const cellW = 180, cellH = 170;
-    const cols = Math.max(3, Math.min(6, Math.floor(width / cellW)));
+    // Same bug class as WorldMap's world grid: a forced minimum column count
+    // (previously 3) overflows on a narrow portrait phone (390px wide needs
+    // at least 540px for 3 columns at 180px each) and clips the outer cards
+    // — confirmed via screenshot. Never fewer than 1, never more than fits.
+    const cols = Math.max(1, Math.min(6, Math.floor(width / cellW)));
     const gridWidth = cols * cellW;
     const startX = (width - gridWidth) / 2 + cellW / 2;
     const startY = Math.min(160, height * 0.35);

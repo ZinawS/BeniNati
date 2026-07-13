@@ -156,8 +156,10 @@ level content required.
 
 The canvas scales and centers itself to fit any screen (phone, tablet, laptop,
 desktop) via Phaser's Scale Manager, going full-bleed edge-to-edge on small screens.
-Since this is a landscape platformer, holding a phone in portrait shows a "please
-rotate" overlay instead of squeezing the game into a narrow strip. Audio unlocks
+It plays best in landscape (holding a phone in portrait shows a dismissible
+"rotate for a better view" suggestion), but portrait is fully playable too —
+every menu and the gameplay HUD adapt their layout and font sizing to whatever
+width is actually available, verified down to a 390px-wide screen. Audio unlocks
 automatically on your first tap/keypress, working around mobile browsers' autoplay
 restrictions rather than requiring a specific button.
 
