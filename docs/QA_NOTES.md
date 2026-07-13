@@ -24,6 +24,18 @@ was run against a live page on real devices. Treat "Verified" as real, and
   `2d/dist/bundle.js` passes `node --check`. Confirmed it references the global
   `Phaser` (22 call sites) rather than trying to bundle Phaser itself, which is the
   expected behavior since it's loaded separately via the CDN `<script>` tag.
+- **Ring combo, jump juice, Photo Mode** — verified end-to-end in a real headless
+  browser, not just by reading the code: temporarily exposed the `Phaser.Game`
+  instance on `window` (reverted before committing), navigated through the real
+  `ProfileSelect` UI via an actual simulated mouse click (not a direct method call),
+  then started `GameScene` and called `collectRing()` six times — confirmed
+  `score`/`ringCombo` incremented correctly, the x5 milestone bonus applied (+5
+  score), and the HUD text reflected it. Confirmed `scatterOrDie()` resets the
+  combo to 0. Confirmed `jumpEffect()` doesn't throw. For Photo Mode specifically,
+  confirmed `capturePhoto()` produces a real PNG snapshot (via `game.renderer.
+  snapshot()`, ~99ms) and triggers a real, Playwright-detected file download —
+  proven by asserting on an actual `download` browser event, not by trusting that
+  the code "looks right."
 - **Dashboard navigation** — both dashboard links resolve to real, working pages,
   confirmed via a real headless-browser click (not just checking the `href` string):
   clicking through to `2d/index.html` renders the game canvas, clicking through to

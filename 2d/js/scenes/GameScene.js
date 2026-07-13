@@ -40,6 +40,8 @@ export class GameScene extends Phaser.Scene {
     this.hasShield = false;
     this.superMode = false;
     this.superTriggered = false;
+    this.ringCombo = 0;
+    this.comboTimer = null;
     const save = Save.current();
     this.nightmare = save.nightmareMode && save.gameCompleted;
   }
@@ -254,12 +256,30 @@ export class GameScene extends Phaser.Scene {
     add(this.add.text(cx, cy - 70, "PAUSED", { fontSize: "30px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5).setScrollFactor(0).setDepth(1901));
 
     add(makeButton(this, cx, cy - 10, "[ ▶ Resume ]", () => this.togglePause(), { fontSize: "22px", color: "#00ff00" }).setDepth(1901));
-    add(makeButton(this, cx, cy + 50, "[ Quit to World Map ]", () => {
+    add(makeButton(this, cx, cy + 50, "[ 📷 Photo Mode ]", () => this.capturePhoto(), { fontSize: "16px", color: "#66ccff" }).setDepth(1901));
+    add(makeButton(this, cx, cy + 100, "[ Quit to World Map ]", () => {
       this.physics.world.resume();
       sceneTransition(this, "WorldMap");
     }, { fontSize: "16px", color: "#ff6666" }).setDepth(1901));
 
     return els;
+  }
+
+  /** Hides all meta-UI (HUD, pause overlay, icons) for one frame, grabs a clean
+   * snapshot of just the game world, and triggers a browser download of it. */
+  capturePhoto() {
+    const hidden = [this.scoreText, this.soundIcon, this.pauseIcon, ...(this.pauseElements || [])].filter(Boolean);
+    hidden.forEach((el) => el.setVisible(false));
+    this.game.renderer.snapshot((image) => {
+      hidden.forEach((el) => el.setVisible(true));
+      const link = document.createElement("a");
+      link.href = image.src;
+      link.download = `nati-beniyas-adventure-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      this.showToast("📸 Photo saved!", "#66ccff");
+    });
   }
 
   setupBoss() {
@@ -566,7 +586,7 @@ export class GameScene extends Phaser.Scene {
     if (onGround) { this.jumpsUsed = 0; this.airDashUsed = false; }
 
     if (input.jumpJustPressed && !this.inputLocked) {
-      if (onGround) { this.player.setVelocityY(-480); this.jumpsUsed = 1; SFX.jump(); }
+      if (onGround) { this.player.setVelocityY(-480); this.jumpsUsed = 1; SFX.jump(); this.jumpEffect(); }
       else if (!onGround && (this.player.body.touching.left || this.player.body.touching.right) && save.abilities.wallJump) {
         const pushDir = this.player.body.touching.left ? 1 : -1;
         this.player.setVelocityY(-420);
@@ -666,7 +686,11 @@ export class GameScene extends Phaser.Scene {
 
   showAchievementToast(ach) {
     SFX.achievement();
-    const t = this.add.text(this.scale.width / 2, 110, `🏆 Achievement Unlocked: ${ach.name}`, { fontSize: "15px", fill: "#ffee00", backgroundColor: "#000000cc", padding: { x: 12, y: 8 } }).setOrigin(0.5).setScrollFactor(0).setAlpha(0);
+    this.showToast(`🏆 Achievement Unlocked: ${ach.name}`, "#ffee00");
+  }
+
+  showToast(message, color = "#ffee00") {
+    const t = this.add.text(this.scale.width / 2, 110, message, { fontSize: "15px", fill: color, backgroundColor: "#000000cc", padding: { x: 12, y: 8 } }).setOrigin(0.5).setScrollFactor(0).setDepth(2000).setAlpha(0);
     this.tweens.add({ targets: t, alpha: 1, duration: 300, hold: 2200, yoyo: true, onComplete: () => t.destroy() });
   }
 
@@ -740,8 +764,32 @@ export class GameScene extends Phaser.Scene {
     ring.disableBody(true, true);
     this.score += 1;
     SFX.ring();
+    this.ringSparkle(ring.x, ring.y);
     this.recordStat((stats) => (stats.totalRings += 1));
+
+    this.ringCombo += 1;
+    if (this.comboTimer) this.comboTimer.remove();
+    this.comboTimer = this.time.delayedCall(2500, () => { this.ringCombo = 0; this.updateHUD(); });
+    if (this.ringCombo > 0 && this.ringCombo % 5 === 0) {
+      this.score += 5;
+      this.showToast(`✨ Combo x${this.ringCombo}! +5 bonus`, "#66ffcc");
+    }
+
     this.updateHUD();
+  }
+
+  ringSparkle(x, y) {
+    const particles = this.add.particles("particle");
+    const emitter = particles.createEmitter({ tint: [0xffee00, 0xffffff], speed: { min: 40, max: 100 }, lifespan: 250, quantity: 6, scale: { start: 0.6, end: 0 }, on: false });
+    emitter.explode(6, x, y);
+    this.time.delayedCall(300, () => particles.destroy());
+  }
+
+  jumpEffect() {
+    const particles = this.add.particles("particle");
+    const emitter = particles.createEmitter({ tint: this.theme.groundTop, speed: { min: 30, max: 80 }, angle: { min: 250, max: 290 }, lifespan: 220, quantity: 5, scale: { start: 0.5, end: 0 }, on: false });
+    emitter.explode(5, this.player.x, this.player.y + 16);
+    this.time.delayedCall(300, () => particles.destroy());
   }
 
   hitSpring(player) { player.setVelocityY(-750); SFX.spring(); }
@@ -763,6 +811,8 @@ export class GameScene extends Phaser.Scene {
   scatterOrDie() {
     if (this.isInvulnerable || this.inputLocked) return;
     if (this.consumeShield()) return;
+    this.ringCombo = 0;
+    if (this.comboTimer) this.comboTimer.remove();
     if (this.score > 0) {
       let n = Math.min(this.score, 15);
       for (let i = 0; i < n; i++) {
@@ -862,10 +912,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   updateHUD() {
+    const combo = this.ringCombo >= 2 ? ` (x${this.ringCombo} combo!)` : "";
     if (this.bossRush) {
-      this.scoreText.setText(`${this.playerName} | Rings: ${this.score} | BOSS RUSH ${this.worldIndex + 1}/${WORLDS.length}`);
+      this.scoreText.setText(`${this.playerName} | Rings: ${this.score}${combo} | BOSS RUSH ${this.worldIndex + 1}/${WORLDS.length}`);
     } else {
-      this.scoreText.setText(`${this.playerName} | Rings: ${this.score} | ${this.world.name} - ${this.stageData.type === "boss" ? "BOSS" : "Stage " + (this.stageIndex + 1)}`);
+      this.scoreText.setText(`${this.playerName} | Rings: ${this.score}${combo} | ${this.world.name} - ${this.stageData.type === "boss" ? "BOSS" : "Stage " + (this.stageIndex + 1)}`);
     }
   }
 }

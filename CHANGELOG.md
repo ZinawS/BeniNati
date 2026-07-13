@@ -4,6 +4,25 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is
 [Semantic Versioning](https://semver.org/).
 
+## [1.10.0] — Ring combo, more juice, Photo Mode
+
+Backported the realistically-achievable subset of a much larger "AAA feature"
+wishlist into the 2D game — the rest (motion capture, ragdoll physics, global
+illumination, volumetric fog, 30-100 designed levels, etc.) isn't feasible in a
+2D Phaser browser game and wasn't attempted; see `docs/3D_PROTOTYPE.md` for
+where that ambition actually went instead.
+
+### Added
+- **Ring combo multiplier**: collecting rings within 2.5s of each other builds
+  a combo counter (shown in the HUD once it reaches x2); every 5th ring in a
+  row grants a +5 bonus and a toast. Resets on taking damage.
+- **More particle juice**: a sparkle burst on every ring collected, and a dust
+  puff on ground jumps — filling gaps next to the existing landing/ground-pound/
+  lava-hit/boss-defeat effects, using the same emitter pattern.
+- **Photo Mode**: a new pause-menu button that hides all HUD/menu chrome for one
+  frame, captures a clean PNG of just the game world (`game.renderer.snapshot()`),
+  and downloads it.
+
 ## [1.9.0] — Landing dashboard, 3D prototype
 
 ### Added
