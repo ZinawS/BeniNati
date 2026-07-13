@@ -12,6 +12,7 @@ import {
   PBRMaterial,
   PhysicsAggregate,
   PhysicsShapeType,
+  PhysicsMotionType,
 } from "@babylonjs/core";
 
 // Lights/fog/shadow generator are level-independent — set up once per game
@@ -48,18 +49,30 @@ export function buildEnvironment(scene) {
 export function buildLevel(scene, levelData, shadowGenerator) {
   const meshes = [];
   const aggregates = [];
+  const movingPlatforms = [];
 
   levelData.platforms.forEach((p, i) => {
     const box = MeshBuilder.CreateBox(`platform${i}`, { width: p.size[0], height: p.size[1], depth: p.size[2] }, scene);
     box.position.set(p.pos[0], p.pos[1], p.pos[2]);
+    // Moving platforms get a warmer tint so they visually read as "different
+    // from the static path" at a glance, not just when they start sliding.
     const mat = new PBRMaterial(`platformMat${i}`, scene);
-    mat.albedoColor = new Color3(0.75, 0.7, 0.55);
+    mat.albedoColor = p.moving ? new Color3(0.85, 0.55, 0.35) : new Color3(0.75, 0.7, 0.55);
     mat.roughness = 0.6;
     mat.metallic = 0.1;
     box.material = mat;
     box.receiveShadows = true;
     shadowGenerator.addShadowCaster(box);
-    aggregates.push(new PhysicsAggregate(box, PhysicsShapeType.BOX, { mass: 0, friction: 0.7 }, scene));
+    const aggregate = new PhysicsAggregate(box, PhysicsShapeType.BOX, { mass: 0, friction: 0.7 }, scene);
+    if (p.moving) {
+      // ANIMATED (not STATIC/DYNAMIC): moves under our own control each
+      // frame rather than gravity/forces, but still correctly pushes/carries
+      // a DYNAMIC body (the player) standing on it — real physics-driven
+      // motion, not a purely visual slide with fake collision.
+      aggregate.body.setMotionType(PhysicsMotionType.ANIMATED);
+      movingPlatforms.push({ body: aggregate.body, basePos: box.position.clone(), ...p.moving, elapsed: 0 });
+    }
+    aggregates.push(aggregate);
     meshes.push(box);
   });
 
@@ -71,7 +84,22 @@ export function buildLevel(scene, levelData, shadowGenerator) {
   goalMesh.material = goalMat;
   meshes.push(goalMesh);
 
-  return { meshes, aggregates, goalMesh };
+  return { meshes, aggregates, goalMesh, movingPlatforms };
+}
+
+// Advances every moving platform in the current level by one frame — an
+// oscillating sine offset along its configured axis, driven through
+// setTargetTransform() so Havok computes correct carry-along velocity for
+// anything standing on top (unlike a raw position write, which a physics
+// body would just ignore).
+export function updateMovingPlatforms(movingPlatforms, dt) {
+  movingPlatforms.forEach((mp) => {
+    mp.elapsed += dt;
+    const offset = Math.sin(mp.elapsed * mp.speed) * mp.range;
+    const pos = mp.basePos.clone();
+    pos[mp.axis] += offset;
+    mp.body.setTargetTransform(pos, mp.body.transformNode.rotationQuaternion);
+  });
 }
 
 export function disposeLevel(levelObjects) {

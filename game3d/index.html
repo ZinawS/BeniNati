@@ -3,20 +3,35 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>3D Prototype — Vertical Slice (Babylon.js)</title>
+    <title>3D Platformer (Babylon.js)</title>
     <link rel="stylesheet" href="css/main.css" />
   </head>
   <body>
     <canvas id="render-canvas"></canvas>
+    <div id="character-select">
+      <div class="card">
+        <h2>Choose Your Jumper</h2>
+        <p>Pick an outfit color — you can change this any time from the same screen on reload.</p>
+        <div id="persona-grid"></div>
+      </div>
+    </div>
     <div id="hud">
-      <div id="loading">Loading 3D prototype…</div>
+      <div id="loading">Loading 3D game…</div>
       <div id="level-info" class="hidden"></div>
+      <div id="lives-info" class="hidden"></div>
       <div id="info">WASD / Arrows to move · Space to jump · Drag mouse to orbit camera</div>
       <div id="level-complete" class="hidden">
         <div class="card">
           <h2 id="level-complete-title">Level Complete!</h2>
           <p id="level-complete-sub"></p>
           <button id="level-complete-btn" type="button">Next Level</button>
+        </div>
+      </div>
+      <div id="game-over" class="hidden">
+        <div class="card game-over-card">
+          <h2>Out of Lives</h2>
+          <p>Falling too many times used up all your lives for this run.</p>
+          <button id="game-over-btn" type="button">Retry from Level 1</button>
         </div>
       </div>
     </div>

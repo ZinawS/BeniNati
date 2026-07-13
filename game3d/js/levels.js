@@ -5,6 +5,11 @@
 // giving a walk-jump range of ~6 units and a run-jump (8 u/s) range of
 // ~11 units — gaps below stay well inside those so every jump is makeable,
 // tighter gaps just need a run-up instead of a walk.
+//
+// A platform's optional `moving: {axis, range, speed}` makes it slide back
+// and forth (real Havok ANIMATED-motion physics, not a visual-only fake) —
+// introduced starting Level 2, faster/wider by Level 4, as one concrete way
+// the difficulty ramps up beyond just bigger gaps.
 export const LEVELS = [
   {
     name: "First Steps",
@@ -27,7 +32,7 @@ export const LEVELS = [
       { pos: [0, 0, 0], size: [5, 1, 5] },
       { pos: [0, 0.5, 7], size: [3.5, 1, 3.5] },
       { pos: [0, 1.5, 13], size: [3.5, 1, 3.5] },
-      { pos: [0, 2.5, 19], size: [3.5, 1, 3.5] },
+      { pos: [0, 2.5, 19], size: [3.5, 1, 3.5], moving: { axis: "x", range: 3, speed: 1.2 } },
       { pos: [-3, 3, 25], size: [3.5, 1, 3.5] },
       { pos: [-3, 3.5, 31], size: [3.5, 1, 3.5] },
       { pos: [-3, 3.5, 37], size: [5, 1, 5] },
@@ -42,7 +47,7 @@ export const LEVELS = [
       { pos: [0, 0, 0], size: [5, 1, 5] },
       { pos: [0, 0, 7], size: [2.5, 1, 2.5] },
       { pos: [4, 0, 12], size: [2.5, 1, 2.5] },
-      { pos: [4, 1, 18], size: [2.5, 1, 2.5] },
+      { pos: [4, 1, 18], size: [2.5, 1, 2.5], moving: { axis: "z", range: 2.5, speed: 1.5 } },
       { pos: [0, 1, 23], size: [2.5, 1, 2.5] },
       { pos: [0, 2, 29], size: [2.5, 1, 2.5] },
       { pos: [-4, 2, 34], size: [2.5, 1, 2.5] },
@@ -58,9 +63,9 @@ export const LEVELS = [
       { pos: [0, 0, 0], size: [5, 1, 5] },
       { pos: [0, 1, 6], size: [3, 1, 3] },
       { pos: [3, 2, 11], size: [3, 1, 3] },
-      { pos: [3, 3, 16], size: [2.5, 1, 2.5] },
+      { pos: [3, 3, 16], size: [2.5, 1, 2.5], moving: { axis: "x", range: 3, speed: 1.8 } },
       { pos: [-1, 4, 21], size: [2.5, 1, 2.5] },
-      { pos: [-1, 5, 26], size: [2.5, 1, 2.5] },
+      { pos: [-1, 5, 26], size: [2.5, 1, 2.5], moving: { axis: "z", range: 2.5, speed: 2 } },
       { pos: [3, 6, 31], size: [2.5, 1, 2.5] },
       { pos: [3, 6, 37], size: [2.5, 1, 2.5] },
       { pos: [0, 6.5, 43], size: [3, 1, 3] },

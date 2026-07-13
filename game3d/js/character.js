@@ -2,7 +2,7 @@
 // asset — freely hosted for exactly this kind of use, see README for the
 // honest asset-sourcing story) and drives it with physics-based movement
 // instead of Arcade Physics' AABB overlap tests.
-import { ImportMeshAsync, Vector3, Quaternion, TransformNode, PhysicsAggregate, PhysicsShapeType } from "@babylonjs/core";
+import { ImportMeshAsync, Vector3, Quaternion, Color3, TransformNode, PhysicsAggregate, PhysicsShapeType } from "@babylonjs/core";
 
 const CHARACTER_URL = "https://assets.babylonjs.com/meshes/HVGirl.glb";
 const MOVE_SPEED = 4.2;
@@ -30,9 +30,19 @@ const TARGET_HEIGHT = 1.8;
 const VISUAL_SCALE = TARGET_HEIGHT / RAW_HEIGHT;
 const CAPSULE_RADIUS = 0.3;
 
-export async function loadCharacter(scene, shadowGenerator, startPos = [0, 0.05, 0]) {
+export async function loadCharacter(scene, shadowGenerator, startPos = [0, 0.05, 0], persona = null) {
   const result = await ImportMeshAsync(CHARACTER_URL, scene);
   const root = result.meshes[0];
+
+  // Persona is an outfit recolor only (T-shirt/shorts materials), never
+  // skin/hair/eyes — see personas.js for why not different models entirely.
+  if (persona) {
+    result.meshes.forEach((m) => {
+      if (!m.material) return;
+      if (persona.shirtColor && m.material.name === "T-shirt") m.material.albedoColor = Color3.FromArray(persona.shirtColor);
+      if (persona.shortsColor && m.material.name === "short") m.material.albedoColor = Color3.FromArray(persona.shortsColor);
+    });
+  }
 
   // Physics needs a stable, correctly-scaled body to drive — rather than
   // fight the oversized visual mesh's own transform (and the shape-scaling

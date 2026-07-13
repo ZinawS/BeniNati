@@ -27,6 +27,72 @@ html, body {
   color: #fff;
 }
 
+#character-select {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: #fff;
+  z-index: 10;
+}
+#character-select.hidden {
+  display: none;
+}
+#character-select .card {
+  background: #101025;
+  border: 2px solid #66ccff;
+  border-radius: 16px;
+  padding: 28px 36px;
+  text-align: center;
+  box-shadow: 0 0 40px rgba(102, 204, 255, 0.35);
+  max-width: 420px;
+}
+#character-select h2 {
+  color: #66ccff;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+#character-select p {
+  font-size: 13px;
+  color: #ccc;
+  margin-bottom: 20px;
+}
+#persona-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+}
+.persona-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #ddd;
+  font: inherit;
+  font-size: 12px;
+}
+.persona-swatch {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.4);
+  transition: border-color 0.15s, transform 0.1s;
+}
+.persona-btn:hover .persona-swatch {
+  border-color: #fff;
+  transform: scale(1.08);
+}
+.persona-btn:active .persona-swatch {
+  transform: scale(0.95);
+}
+
 #loading {
   position: absolute;
   top: 50%;
@@ -67,7 +133,23 @@ html, body {
   display: none;
 }
 
-#level-complete {
+#lives-info {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 8px 14px;
+  border-radius: 8px;
+}
+#lives-info.hidden {
+  display: none;
+}
+
+#level-complete,
+#game-over {
   position: absolute;
   inset: 0;
   display: flex;
@@ -75,10 +157,12 @@ html, body {
   justify-content: center;
   background: rgba(0, 0, 0, 0.55);
 }
-#level-complete.hidden {
+#level-complete.hidden,
+#game-over.hidden {
   display: none;
 }
-#level-complete .card {
+#level-complete .card,
+#game-over .card {
   pointer-events: auto;
   background: #101025;
   border: 2px solid #ffcc55;
@@ -87,17 +171,20 @@ html, body {
   text-align: center;
   box-shadow: 0 0 40px rgba(255, 204, 85, 0.35);
 }
-#level-complete h2 {
+#level-complete h2,
+#game-over h2 {
   color: #ffcc55;
   font-size: 26px;
   margin-bottom: 10px;
 }
-#level-complete p {
+#level-complete p,
+#game-over p {
   font-size: 14px;
   color: #ddd;
   margin-bottom: 18px;
 }
-#level-complete button {
+#level-complete button,
+#game-over button {
   font: inherit;
   font-weight: 700;
   font-size: 16px;
@@ -109,7 +196,92 @@ html, body {
   cursor: pointer;
   box-shadow: 0 4px 0 #a06e00;
 }
-#level-complete button:active {
+#level-complete button:active,
+#game-over button:active {
   transform: translateY(2px);
   box-shadow: 0 2px 0 #a06e00;
+}
+
+/* Game-over uses a red accent instead of gold to read as distinct/worse
+   than a level-complete moment, even at a glance. */
+.game-over-card {
+  border-color: #ff5566 !important;
+  box-shadow: 0 0 40px rgba(255, 85, 102, 0.35) !important;
+}
+#game-over h2 {
+  color: #ff5566;
+}
+
+/* Touch controls — only ever created (touchControls.js) on a touch-capable
+   device, so no media query is needed here to hide these on desktop. */
+#touch-controls {
+  position: absolute;
+  inset: 0;
+}
+
+#touch-joystick-zone {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  width: 130px;
+  height: 130px;
+  pointer-events: auto;
+  touch-action: none;
+}
+#touch-joystick-base {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+}
+#touch-joystick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 54px;
+  height: 54px;
+  margin-left: -27px;
+  margin-top: -27px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  transform: translate(-50%, -50%);
+  transition: background 0.1s;
+}
+
+#touch-action-zone {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+}
+#touch-action-zone button {
+  pointer-events: auto;
+  touch-action: none;
+  font: inherit;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.45);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#touch-run-btn {
+  width: 60px;
+  height: 60px;
+  font-size: 11px;
+  margin-bottom: 12px;
+}
+#touch-jump-btn {
+  width: 84px;
+  height: 84px;
+  font-size: 13px;
+}
+#touch-action-zone button.active {
+  background: rgba(255, 204, 85, 0.55);
+  border-color: #ffcc55;
 }

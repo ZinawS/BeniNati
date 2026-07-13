@@ -4,6 +4,38 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is
 [Semantic Versioning](https://semver.org/).
 
+## [1.15.0] — 3D game: touch controls, lives, moving-platform hazards, outfits
+
+### Added
+- **Touch controls** (`game3d/js/touchControls.js`) — a draggable virtual
+  joystick (movement) plus Run/Jump buttons, shown only on touch-capable
+  devices, merged with keyboard input so both work at once. Uses native
+  browser Pointer Events on separate DOM elements rather than Phaser's input
+  system, which architecturally should support genuine simultaneous
+  multi-touch without the single-touch-point limitation the 2D game needed
+  `activePointers: 3` to work around — not independently exercised with real
+  simultaneous multi-touch in testing, though.
+- **A lives system** — 3 hearts, top-right. Falling into a gap now costs a
+  life and respawns at the level start; running out shows a "Game Over"
+  overlay with a real "Retry from Level 1" button, instead of infinite free
+  respawns. Verified by forcing 3 falls through the actual fall-handling code
+  path and confirming lives hit exactly 0 at the right moment, the overlay
+  appeared, and a real click on Retry correctly reset the run.
+- **Moving-platform hazards** in Levels 2–4 (`levels.js`'s `moving:
+  {axis, range, speed}`) — real Havok `ANIMATED`-motion physics bodies, not a
+  visual-only fake, correctly carrying the player when they're standing on
+  one. Verified by sampling each platform's actual world position every
+  500ms and confirming real oscillation within its configured range.
+- **5 selectable jumper outfits** (`game3d/js/personas.js`, shown on a new
+  character-select screen before the game starts) — Classic, Coral, Azure,
+  Golden, Emerald. Recolors only the T-shirt/shorts materials on the
+  existing rigged character, not 5 separate character models — this project
+  has no free library of rigged, animation-compatible humanoid assets to
+  draw from, and sourcing even the one character it uses already surfaced
+  several real bugs (see docs/3D_PROTOTYPE.md). Verified by clicking each
+  swatch for real and screenshotting the result; skin/hair stayed correctly
+  unaffected.
+
 ## [1.14.0] — Real difficulty progression across worlds (2D game)
 
 ### Fixed

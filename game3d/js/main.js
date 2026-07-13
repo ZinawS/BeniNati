@@ -9,15 +9,40 @@ import { Engine, Scene, ArcRotateCamera, Vector3 } from "@babylonjs/core";
 import "@babylonjs/loaders";
 
 import { createHavokPlugin } from "./physics.js";
-import { buildEnvironment, buildLevel, disposeLevel } from "./environment.js";
+import { buildEnvironment, buildLevel, disposeLevel, updateMovingPlatforms } from "./environment.js";
 import { loadCharacter } from "./character.js";
 import { createKeyboardState } from "./input.js";
+import { createTouchControls, isTouchDevice } from "./touchControls.js";
 import { setupPostProcessing } from "./postfx.js";
 import { LEVELS } from "./levels.js";
+import { PERSONAS } from "./personas.js";
 
 const GOAL_RADIUS = 2;
+const STARTING_LIVES = 3;
+
+// Shown before anything Babylon-related even starts — it's plain DOM, no
+// engine/scene needed yet — and resolves once the player taps a swatch.
+function selectPersona() {
+  return new Promise((resolve) => {
+    const selectEl = document.getElementById("character-select");
+    const gridEl = document.getElementById("persona-grid");
+    PERSONAS.forEach((persona) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "persona-btn";
+      btn.innerHTML = `<span class="persona-swatch" style="background:${persona.swatch}"></span><span>${persona.name}</span>`;
+      btn.addEventListener("click", () => {
+        selectEl.classList.add("hidden");
+        resolve(persona);
+      });
+      gridEl.appendChild(btn);
+    });
+  });
+}
 
 async function main() {
+  const persona = await selectPersona();
+
   const canvas = document.getElementById("render-canvas");
   const engine = new Engine(canvas, true, { stencil: true, antialias: true });
   const scene = new Scene(engine);
@@ -34,21 +59,37 @@ async function main() {
   camera.attachControl(canvas, true);
 
   const { shadowGenerator } = buildEnvironment(scene);
-  const character = await loadCharacter(scene, shadowGenerator, LEVELS[0].playerStart);
+  const character = await loadCharacter(scene, shadowGenerator, LEVELS[0].playerStart, persona);
 
   setupPostProcessing(scene, camera);
 
-  const input = createKeyboardState();
+  const keyboardInput = createKeyboardState();
+  const touchInput = createTouchControls();
   const loadingEl = document.getElementById("loading");
   const levelInfoEl = document.getElementById("level-info");
+  const livesInfoEl = document.getElementById("lives-info");
+  const infoEl = document.getElementById("info");
   const completeEl = document.getElementById("level-complete");
   const completeTitleEl = document.getElementById("level-complete-title");
   const completeSubEl = document.getElementById("level-complete-sub");
   const completeBtnEl = document.getElementById("level-complete-btn");
+  const gameOverEl = document.getElementById("game-over");
+  const gameOverBtnEl = document.getElementById("game-over-btn");
+
+  if (isTouchDevice && infoEl) {
+    infoEl.textContent = "Left stick to move · JUMP to jump · RUN to sprint · Drag screen to orbit camera";
+  }
 
   let levelIndex = 0;
   let levelObjects = null;
-  let levelActive = false; // false while the "level complete" overlay is up
+  let levelActive = false; // false while an overlay (level-complete/game-over) is up
+  let lives = STARTING_LIVES;
+
+  function updateLivesHUD() {
+    if (!livesInfoEl) return;
+    livesInfoEl.textContent = "❤".repeat(Math.max(0, lives)) + "🖤".repeat(Math.max(0, STARTING_LIVES - lives));
+    livesInfoEl.classList.remove("hidden");
+  }
 
   function loadLevel(index) {
     disposeLevel(levelObjects);
@@ -57,10 +98,12 @@ async function main() {
     character.respawn(data.playerStart);
     levelActive = true;
     completeEl.classList.add("hidden");
+    gameOverEl.classList.add("hidden");
     if (levelInfoEl) {
       levelInfoEl.textContent = `Level ${index + 1} of ${LEVELS.length}: ${data.name}`;
       levelInfoEl.classList.remove("hidden");
     }
+    updateLivesHUD();
   }
 
   function onGoalReached() {
@@ -74,9 +117,30 @@ async function main() {
     completeEl.classList.remove("hidden");
   }
 
+  // Falling into a gap costs a life instead of being a free, unlimited
+  // retry — repeatedly missing jumps now has a real consequence, same as
+  // any standard platformer's lives system.
+  function onFall(data) {
+    lives -= 1;
+    updateLivesHUD();
+    if (lives <= 0) {
+      levelActive = false;
+      gameOverEl.classList.remove("hidden");
+    } else {
+      character.respawn(data.playerStart);
+    }
+  }
+
   completeBtnEl.addEventListener("click", () => {
     levelIndex = levelIndex === LEVELS.length - 1 ? 0 : levelIndex + 1;
+    if (levelIndex === 0) lives = STARTING_LIVES; // full loop back to Level 1 — fresh run
     loadLevel(levelIndex);
+  });
+
+  gameOverBtnEl.addEventListener("click", () => {
+    lives = STARTING_LIVES;
+    levelIndex = 0;
+    loadLevel(0);
   });
 
   loadLevel(0);
@@ -89,11 +153,25 @@ async function main() {
       levelObjects.goalMesh.rotation.y += dt * 1.5;
       levelObjects.goalMesh.rotation.x += dt * 0.7;
     }
+    if (levelObjects && levelActive) {
+      updateMovingPlatforms(levelObjects.movingPlatforms, dt);
+    }
 
     if (levelActive) {
+      // Merge keyboard and touch input — whichever has actual signal wins
+      // per-axis, so a touch player who also has a keyboard plugged in
+      // (a tablet with a case, say) doesn't fight themselves.
+      const kb = keyboardInput.poll();
+      const tc = touchInput.poll();
+      const raw = {
+        forwardAxis: kb.forwardAxis || tc.forwardAxis,
+        strafeAxis: kb.strafeAxis || tc.strafeAxis,
+        run: kb.run || tc.run,
+        jumpPressed: kb.jumpPressed || tc.jumpPressed,
+      };
+
       // Camera-relative movement: "forward" is wherever the camera is
       // currently looking, projected flat onto the ground plane.
-      const raw = input.poll();
       let x = 0, z = 0;
       if (raw.forwardAxis || raw.strafeAxis) {
         const forward = camera.getForwardRay().direction;
@@ -111,7 +189,7 @@ async function main() {
 
       const data = LEVELS[levelIndex];
       if (character.root.position.y < data.fallThreshold) {
-        character.respawn(data.playerStart);
+        onFall(data);
       } else {
         const goalVec = new Vector3(data.goal[0], data.goal[1], data.goal[2]);
         if (Vector3.Distance(character.root.position, goalVec) < GOAL_RADIUS) {

@@ -1,7 +1,7 @@
 {
   "name": "nati-beniyas-speedy-adventure",
   "private": true,
-  "version": "1.14.0",
+  "version": "1.15.0",
   "type": "module",
   "description": "A browser platform-adventure game built with Phaser 3.",
   "scripts": {

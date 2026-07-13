@@ -18,8 +18,22 @@ different entry point (`game3d/index.html`).
   spinning goal marker to complete a level; a "Level Complete" overlay shows the
   next level's name and a button to continue, and the last level shows a finish
   message with a "Play Again" button that loops back to Level 1.
-- **Fall recovery** — falling below a level's fall threshold (into a gap) respawns
-  you at the level's start, not a hard failure/game-over.
+- **Moving-platform hazards** (Levels 2–4, `moving: {axis, range, speed}` in level
+  data) — real Havok `ANIMATED`-motion physics bodies sliding back and forth, not a
+  visual-only fake, correctly carrying the player if they're standing on one. Faster
+  and more numerous by Level 4, as one concrete way difficulty ramps up beyond just
+  bigger gaps.
+- **A lives system** — 3 lives per run (❤ icons, top-right). Falling into a gap
+  costs a life and respawns you at the level start; running out shows a "Game Over"
+  overlay with a "Retry from Level 1" button, instead of infinite free respawns.
+  Lives carry across levels within a run and reset to 3 on a fresh run.
+- **5 selectable jumper outfits** (`game3d/js/personas.js`) — a character-select
+  screen before the game starts, recoloring only the T-shirt/shorts materials
+  (never skin/hair/eyes). Not 5 different character *models* — see "What it
+  deliberately does not have" for why.
+- **Touch controls** (`game3d/js/touchControls.js`) — a draggable virtual joystick
+  plus Run/Jump buttons, shown only on touch-capable devices (mirrors the 2D game's
+  `isTouchDevice` pattern), merged with keyboard input so both work simultaneously.
 - **Real physics** (Havok, WASM) — a capsule character controller with gravity,
   platform collision, and jumping, not simple AABB overlap checks.
 - **A real rigged, animated character** — Babylon's official free glTF demo asset
@@ -35,7 +49,7 @@ different entry point (`game3d/index.html`).
   (`SSAO2RenderingPipeline`). These are Babylon's own built-in pipelines, not custom
   render-engine work.
 - **Camera-relative WASD/arrow movement, Shift-to-run, Space-to-jump, mouse-drag
-  orbit camera.**
+  orbit camera, touch-equivalents of all three.**
 
 ## What it deliberately does not have
 
@@ -45,9 +59,19 @@ physics, global illumination, volumetric fog, cloth simulation, 30–100 designe
 levels (this has 4), a skill tree, leaderboards, or cloud save. Bloom/SSAO/shadows
 are the realistic subset of "AAA visual quality" that a browser engine can actually
 deliver; the rest would require either a custom native engine or scope no browser
-game reasonably takes on. There's also no enemies/hazards, no collectibles, no
-touch controls, and no save system (progress doesn't persist across a reload) —
-all reasonable next steps if this grows further, but out of scope for this pass.
+game reasonably takes on.
+
+**5 different character models, not just 5 outfit colors on one model**: this
+project has no free, rigged, animation-compatible library of humanoid glTF assets
+to draw from, and sourcing even the one character it does use (HVGirl.glb) already
+surfaced several real bugs (see "Verified" below). Recoloring the same rig is the
+same idea most platformers use for cheap, low-risk character variety, without the
+asset-sourcing/rigging risk of swapping the actual mesh per option.
+
+There's also no enemies (moving platforms are the only hazard so far), no
+collectibles, and no save system (progress and lives don't persist across a page
+reload) — reasonable next steps if this grows further, but out of scope for this
+pass.
 
 ## Verified (automated, via headless browser — Playwright/Chromium)
 
@@ -112,6 +136,27 @@ before missing the final jump on its own crude timing; a human with real-time vi
 feedback should reasonably do better, but **this does not constitute proof a human
 can complete any given level** — see "Not verified" below.
 
+**Moving platforms, lives/game-over, touch controls, and personas** were each
+verified with real numbers/events, not by reading the code:
+
+- Sampled each moving platform's actual world position every 500ms across Levels
+  2–4 and confirmed genuine oscillation within the configured range on the
+  configured axis (e.g. Level 2's platform: 2.6 → 0.9 → -2.4 → -2.9 around a base
+  x=0 with range 3) — not just that the code "looks right."
+- Forced three falls in a row via the same code path a real fall takes and confirmed
+  lives went 3→2→1→0, the Game Over overlay appeared exactly at 0, and clicking the
+  real "Retry" button (a real click, not a direct call) reset lives to 3 and reloaded
+  Level 1.
+- Confirmed `#touch-controls` renders on a touch-emulated page and does **not**
+  render on a plain desktop page (same conditional both games use). Dragged the
+  joystick knob with real pointer events and confirmed both its visual position and
+  the character's actual world position changed; held the Jump button and confirmed
+  its `active` CSS state toggled correctly.
+- Clicked each of the 5 persona swatches for real (not by calling `loadCharacter()`
+  with a hardcoded persona) and screenshotted the result — Coral and Golden both
+  show the correct recolored T-shirt/shorts with skin/hair untouched, confirming the
+  material-name-based tinting actually targets the right meshes on this asset.
+
 ## Not verified
 
 - **Real device/browser testing** — everything above ran under headless Chromium
@@ -122,14 +167,23 @@ can complete any given level** — see "Not verified" below.
 - **Performance** — no frame-rate profiling was done on real hardware; the bundle is
   ~15.3MB (full, non-tree-shaken `@babylonjs/core` — see below) plus a ~2MB Havok
   WASM payload, both far heavier than the 2D game's bundle.
-- **Mobile/touch controls** — keyboard-only; no on-screen touch controls exist for
-  this prototype.
+- **Touch controls on a real touch device** — verified via Playwright's touch
+  *emulation* (synthetic pointer events, `hasTouch: true`), not an actual phone or
+  tablet. The joystick and Jump/Run buttons use native browser Pointer Events on
+  separate DOM elements (each touch gets its own `pointerId`, tracked
+  independently) rather than Phaser's input system, which architecturally should
+  support holding the joystick with one thumb while tapping Jump with the other
+  without the single-touch-point limitation the 2D game had to work around
+  (`activePointers: 3`) — but genuine simultaneous multi-touch specifically wasn't
+  exercised in testing, only one touch point at a time.
 - **Actual human completability/difficulty of Levels 2–4** — only Level 1 was
   attempted with a scripted "real input" bot (see above), and even that didn't
   cleanly finish. Levels 2–4's gap sizes are derived from the same jump-range math
   as Level 1 but were only confirmed reachable via the teleport-based goal-detection
-  test, not via genuine platforming. Real human playtesting is the actual next step
-  before treating the difficulty curve as finished/tuned.
+  test, not via genuine platforming — this now also includes timing a jump onto a
+  *moving* platform in Levels 2–4, which is harder to get right by feel than a
+  static gap and wasn't tuned against real play at all. Real human playtesting is
+  the actual next step before treating the difficulty curve as finished/tuned.
 
 ## A deliberate size/reliability trade-off
 
