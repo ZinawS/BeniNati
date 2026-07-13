@@ -30,6 +30,13 @@ function findAnimGroup(groups, patterns, exclude) {
 const TARGET_HEIGHT = 1.8;
 const CAPSULE_RADIUS = 0.3;
 
+// Both supported character models face -Z at their (post-import) identity
+// rotation, not +Z — verified visually (see loadCharacter). This offset is
+// added to every anchor yaw so "facing 0" (moving toward +Z, i.e. straight
+// into the level from the default camera) actually turns the model away
+// from the camera instead of leaving it facing the viewer.
+const FACING_YAW_OFFSET = Math.PI;
+
 export async function loadCharacter(scene, shadowGenerator, startPos = [0, 0.05, 0], persona = null) {
   const characterUrl = (persona && persona.characterUrl) || DEFAULT_CHARACTER_URL;
   const result = await ImportMeshAsync(characterUrl, scene);
@@ -58,7 +65,7 @@ export async function loadCharacter(scene, shadowGenerator, startPos = [0, 0.05,
   // pattern for exactly this kind of mesh/collider mismatch.
   const anchor = new TransformNode("characterAnchor", scene);
   anchor.position.set(startPos[0], startPos[1], startPos[2]);
-  anchor.rotationQuaternion = Quaternion.Identity();
+  anchor.rotationQuaternion = Quaternion.RotationAxis(Vector3.Up(), FACING_YAW_OFFSET);
 
   root.parent = anchor;
   root.position.set(0, 0, 0);
@@ -87,9 +94,15 @@ export async function loadCharacter(scene, shadowGenerator, startPos = [0, 0.05,
   // (rotationQuaternion [0,0,1,0] from the very first rendered frame,
   // before physics ever touched it) — left alone, it renders upside down.
   // Xbot's is a 180-degree rotation about Y instead ([0,1,0,0]) — a
-  // facing-direction flip, not an upside-down one, but resetting to
-  // identity is still correct here since our own movement code drives
-  // facing direction via the anchor, not whatever the asset shipped with.
+  // facing-direction flip, not an upside-down one. Both get reset to
+  // identity here for the same reason (our own movement code drives
+  // facing via the anchor, not whatever the asset shipped with) — but at
+  // identity, both models' neutral pose actually faces -Z (confirmed by
+  // screenshotting: the character showed its face to a camera parked on
+  // the -Z side while walking toward +Z, i.e. it always faced the viewer
+  // instead of the direction it was walking). FACING_YAW_OFFSET corrects
+  // for that so yaw 0 on the anchor means "facing +Z", matching the
+  // atan2(x, z) convention used below.
   root.rotationQuaternion = Quaternion.Identity();
 
   result.meshes.forEach((m) => {
@@ -189,7 +202,7 @@ export async function loadCharacter(scene, shadowGenerator, startPos = [0, 0.05,
       // Rotate the anchor, not the visual mesh directly — the mesh just
       // inherits it as a child. Anchor has a rotationQuaternion set (see the
       // identity-reset above), so Babylon ignores plain .rotation.y writes.
-      Quaternion.RotationYawPitchRollToRef(facing, 0, 0, anchor.rotationQuaternion);
+      Quaternion.RotationYawPitchRollToRef(facing + FACING_YAW_OFFSET, 0, 0, anchor.rotationQuaternion);
     }
   }
 
@@ -212,7 +225,7 @@ export async function loadCharacter(scene, shadowGenerator, startPos = [0, 0.05,
     body.setLinearVelocity(Vector3.Zero());
     body.setAngularVelocity(Vector3.Zero());
     anchor.position.set(position[0], position[1], position[2]);
-    anchor.rotationQuaternion.copyFrom(Quaternion.Identity());
+    anchor.rotationQuaternion.copyFrom(Quaternion.RotationAxis(Vector3.Up(), FACING_YAW_OFFSET));
     body.disablePreStep = false;
     // Physics steps once per scene.render() call, *before* rendering — by
     // the time onAfterRenderObservable fires for this same frame, that step
