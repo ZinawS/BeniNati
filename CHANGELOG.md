@@ -4,6 +4,31 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is
 [Semantic Versioning](https://semver.org/).
 
+## [1.12.0] — 3D game: 4 real levels (was a single-scene prototype)
+
+The `game3d/` Babylon.js prototype is now a small, genuinely playable game
+instead of one static scene: 4 levels (`game3d/js/levels.js`), each a run of
+platforms across gaps to a glowing goal marker, with a "Level Complete"
+overlay between levels and a finish screen with "Play Again" on the last one.
+Falling into a gap respawns you at the level's start instead of being a dead
+end. See `docs/3D_PROTOTYPE.md` for what's verified and what still needs real
+human playtesting before the difficulty curve is considered final.
+
+### Added
+- 4 levels: First Steps, Stepping Up, The Gauntlet, Sky Course.
+- Fall-threshold respawn per level.
+- Level-complete / game-complete UI overlay with a real "Next Level"/"Play
+  Again" button.
+
+### Fixed
+- The first respawn implementation used `PhysicsBody.setTargetTransform()`,
+  which — despite the name — makes a physics body *seek toward* a target by
+  adjusting velocity over time, not teleport to it. Combined with the
+  character controller's own per-frame velocity writes, this produced
+  runaway upward drift instead of a clean respawn (caught via headless
+  position sampling, not by reading the code). Fixed using Havok's actual
+  teleport mechanism (`body.disablePreStep` toggled for one physics step).
+
 ## [1.11.0] — Mobile HUD visibility fix
 
 ### Fixed

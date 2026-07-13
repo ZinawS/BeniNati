@@ -26,9 +26,10 @@ python3 -m http.server 8000
 - **2D Platformer** — `2d/index.html`. The full game: 9 worlds, boss fights, Boss
   Rush, achievements, mobile/TV support. This is the one described in the rest of
   this README.
-- **3D Prototype** — `game3d/index.html`. An experimental Babylon.js vertical slice
-  (physics, a rigged character, dynamic shadows, post-processing). Not a game yet —
-  see [`docs/3D_PROTOTYPE.md`](docs/3D_PROTOTYPE.md) for honest scope and limitations.
+- **3D Platformer** — `game3d/index.html`. An experimental Babylon.js game — real
+  physics, a rigged character, dynamic shadows, post-processing, across 4 goal-based
+  platforming levels. Small and early, not as polished/tested as the 2D game — see
+  [`docs/3D_PROTOTYPE.md`](docs/3D_PROTOTYPE.md) for honest scope and limitations.
 
 > A legacy single-file version from earlier in this project's history is kept at
 > [`2d/legacy/game-classic.html`](2d/legacy/game-classic.html) for reference, but

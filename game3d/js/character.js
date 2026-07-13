@@ -30,7 +30,7 @@ const TARGET_HEIGHT = 1.8;
 const VISUAL_SCALE = TARGET_HEIGHT / RAW_HEIGHT;
 const CAPSULE_RADIUS = 0.3;
 
-export async function loadCharacter(scene, shadowGenerator) {
+export async function loadCharacter(scene, shadowGenerator, startPos = [0, 0.05, 0]) {
   const result = await ImportMeshAsync(CHARACTER_URL, scene);
   const root = result.meshes[0];
 
@@ -41,7 +41,7 @@ export async function loadCharacter(scene, shadowGenerator) {
   // that follows it. This is the standard "physics proxy + visual child"
   // pattern for exactly this kind of mesh/collider mismatch.
   const anchor = new TransformNode("characterAnchor", scene);
-  anchor.position.set(0, 0.05, 0);
+  anchor.position.set(startPos[0], startPos[1], startPos[2]);
   anchor.rotationQuaternion = Quaternion.Identity();
 
   root.parent = anchor;
@@ -154,5 +154,35 @@ export async function loadCharacter(scene, shadowGenerator) {
     }
   }
 
-  return { root: anchor, update, body: aggregate.body, get grounded() { return grounded; } };
+  // Teleporting a *dynamic* physics body (nonzero mass) isn't as simple as
+  // setting transformNode.position — Havok owns that body's transform once
+  // it's simulating, so a plain position write normally gets ignored/
+  // overwritten on the next physics step (prestep is DISABLED by default,
+  // precisely so our own per-frame position isn't fought over). This
+  // deliberately did NOT use setTargetTransform() first — that API makes the
+  // body *seek toward* a target by adjusting velocity over time, not snap to
+  // it; combined with update()'s own per-frame setLinearVelocity() calls,
+  // the two fought each other and produced runaway upward drift instead of
+  // an instant teleport (confirmed via headless diagnostic: y climbed
+  // unbounded, x/z froze mid-air). Flipping disablePreStep off for exactly
+  // one physics step is Babylon's actual documented mechanism for a genuine
+  // teleport: it makes the body pull its transform FROM the node for that
+  // one step, instead of the other way around.
+  function respawn(position) {
+    const body = aggregate.body;
+    body.setLinearVelocity(Vector3.Zero());
+    body.setAngularVelocity(Vector3.Zero());
+    anchor.position.set(position[0], position[1], position[2]);
+    anchor.rotationQuaternion.copyFrom(Quaternion.Identity());
+    body.disablePreStep = false;
+    // Physics steps once per scene.render() call, *before* rendering — by
+    // the time onAfterRenderObservable fires for this same frame, that step
+    // has already consumed the position write above as the teleport target,
+    // so it's safe to flip prestep back off for every frame after this one.
+    scene.onAfterRenderObservable.addOnce(() => { body.disablePreStep = true; });
+    grounded = true;
+    crossFadeTo(anims.idle);
+  }
+
+  return { root: anchor, update, respawn, body: aggregate.body, get grounded() { return grounded; } };
 }

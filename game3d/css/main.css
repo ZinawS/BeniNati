@@ -52,3 +52,64 @@ html, body {
   border-radius: 20px;
   white-space: nowrap;
 }
+
+#level-info {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 8px 14px;
+  border-radius: 8px;
+}
+#level-info.hidden {
+  display: none;
+}
+
+#level-complete {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+}
+#level-complete.hidden {
+  display: none;
+}
+#level-complete .card {
+  pointer-events: auto;
+  background: #101025;
+  border: 2px solid #ffcc55;
+  border-radius: 16px;
+  padding: 28px 36px;
+  text-align: center;
+  box-shadow: 0 0 40px rgba(255, 204, 85, 0.35);
+}
+#level-complete h2 {
+  color: #ffcc55;
+  font-size: 26px;
+  margin-bottom: 10px;
+}
+#level-complete p {
+  font-size: 14px;
+  color: #ddd;
+  margin-bottom: 18px;
+}
+#level-complete button {
+  font: inherit;
+  font-weight: 700;
+  font-size: 16px;
+  color: #1a1400;
+  background: linear-gradient(180deg, #ffdd55, #ffaa00);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 22px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #a06e00;
+}
+#level-complete button:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #a06e00;
+}

@@ -14,6 +14,9 @@ import {
   PhysicsShapeType,
 } from "@babylonjs/core";
 
+// Lights/fog/shadow generator are level-independent — set up once per game
+// session. Level geometry (platforms, goal marker) is separate: see
+// buildLevel()/disposeLevel() below, called every time the level changes.
 export function buildEnvironment(scene) {
   // Soft ambient fill (sky-down / ground-up light) so shadowed areas are
   // never pure black, plus a directional "sun" that actually casts shadows.
@@ -34,34 +37,21 @@ export function buildEnvironment(scene) {
   scene.fogColor = new Color3(0.6, 0.75, 0.9);
   scene.fogDensity = 0.006;
 
-  const ground = MeshBuilder.CreateGround("ground", { width: 100, height: 100, subdivisions: 4 }, scene);
-  const groundMat = new PBRMaterial("groundMat", scene);
-  groundMat.albedoColor = new Color3(0.28, 0.55, 0.28);
-  groundMat.roughness = 0.9;
-  groundMat.metallic = 0;
-  ground.material = groundMat;
-  ground.receiveShadows = true;
+  return { shadowGenerator };
+}
 
-  // A separate invisible box for physics rather than colliding the visual
-  // ground mesh directly: CreateGround is a zero-thickness plane, and both a
-  // BOX collider auto-fit to it (degenerate height) and a MESH/heightfield
-  // collider on it (one-sided-normal contact instability) let the character
-  // fall straight through after a brief, unstable initial contact — confirmed
-  // by headless testing (grounded flickered true then false while free-falling
-  // under both approaches). A real box with actual thickness is robust.
-  const groundPhysicsBox = MeshBuilder.CreateBox("groundPhysicsBox", { width: 100, height: 1, depth: 100 }, scene);
-  groundPhysicsBox.position.y = -0.5;
-  groundPhysicsBox.isVisible = false;
-  new PhysicsAggregate(groundPhysicsBox, PhysicsShapeType.BOX, { mass: 0, friction: 0.8 }, scene);
+// Builds one level's platforms (real geometry + real collision, each sized
+// with actual thickness — a lesson from the earlier zero-thickness-ground
+// bug, see docs/3D_PROTOTYPE.md) plus a glowing, spinning goal marker.
+// Returns everything so disposeLevel() can clean it all up when the player
+// moves on to the next level.
+export function buildLevel(scene, levelData, shadowGenerator) {
+  const meshes = [];
+  const aggregates = [];
 
-  // A handful of simple platforms/obstacles so there's something to
-  // navigate around — real geometry, real shadows, real collision.
-  const platformPositions = [
-    [6, 1, 4], [10, 2, -3], [-8, 1.5, 6], [-4, 2.5, -8], [14, 1, 10],
-  ];
-  platformPositions.forEach(([x, y, z], i) => {
-    const box = MeshBuilder.CreateBox(`platform${i}`, { width: 3, height: y * 2, depth: 3 }, scene);
-    box.position.set(x, y, z);
+  levelData.platforms.forEach((p, i) => {
+    const box = MeshBuilder.CreateBox(`platform${i}`, { width: p.size[0], height: p.size[1], depth: p.size[2] }, scene);
+    box.position.set(p.pos[0], p.pos[1], p.pos[2]);
     const mat = new PBRMaterial(`platformMat${i}`, scene);
     mat.albedoColor = new Color3(0.75, 0.7, 0.55);
     mat.roughness = 0.6;
@@ -69,8 +59,23 @@ export function buildEnvironment(scene) {
     box.material = mat;
     box.receiveShadows = true;
     shadowGenerator.addShadowCaster(box);
-    new PhysicsAggregate(box, PhysicsShapeType.BOX, { mass: 0, friction: 0.6 }, scene);
+    aggregates.push(new PhysicsAggregate(box, PhysicsShapeType.BOX, { mass: 0, friction: 0.7 }, scene));
+    meshes.push(box);
   });
 
-  return { shadowGenerator, ground };
+  const goalMesh = MeshBuilder.CreateTorus("goalMarker", { diameter: 1.6, thickness: 0.22, tessellation: 24 }, scene);
+  goalMesh.position.set(levelData.goal[0], levelData.goal[1], levelData.goal[2]);
+  const goalMat = new PBRMaterial("goalMat", scene);
+  goalMat.emissiveColor = new Color3(1, 0.85, 0.2);
+  goalMat.albedoColor = new Color3(1, 0.85, 0.2);
+  goalMesh.material = goalMat;
+  meshes.push(goalMesh);
+
+  return { meshes, aggregates, goalMesh };
+}
+
+export function disposeLevel(levelObjects) {
+  if (!levelObjects) return;
+  levelObjects.aggregates.forEach((a) => a.dispose());
+  levelObjects.meshes.forEach((m) => m.dispose());
 }

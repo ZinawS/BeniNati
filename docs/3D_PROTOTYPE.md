@@ -2,23 +2,26 @@
 
 ## What this is
 
-A separate, standalone vertical-slice prototype under `game3d/`, built to answer one
-question honestly: can a real "AAA-style" 3D character controller (physics-driven
-movement, a rigged/animated character, dynamic lighting and shadows, a post-processing
-pipeline) actually run in-browser without a custom engine? It does not touch or depend
-on the live 2D Phaser game at the repo root — different engine (Babylon.js instead of
-Phaser), different physics (Havok instead of Arcade Physics), different bundle
-(`game3d/dist/bundle.js`, built by `npm run build:3d`), different entry point
-(`game3d/index.html`).
-
-This is **not** a game. There are no levels, no goals, no UI beyond a loading
-indicator and a one-line control hint, and the "world" is five gray boxes on a green
-plane. It exists to prove the toolchain works, not to be played.
+A separate, standalone 3D platformer under `game3d/`. It started as a "vertical
+slice" (one scene, no goal, just proving the toolchain worked) and has since grown
+into a small but genuinely complete, finishable game: **4 hand-built levels**, each
+a run of platforms across gaps to a goal marker, with real physics the whole way.
+It does not touch or depend on the live 2D Phaser game at the repo root — different
+engine (Babylon.js instead of Phaser), different physics (Havok instead of Arcade
+Physics), different bundle (`game3d/dist/bundle.js`, built by `npm run build:3d`),
+different entry point (`game3d/index.html`).
 
 ## What it actually has
 
+- **4 playable levels** (`game3d/js/levels.js`) — First Steps, Stepping Up, The
+  Gauntlet, Sky Course, increasing in height/gap difficulty. Reach the glowing
+  spinning goal marker to complete a level; a "Level Complete" overlay shows the
+  next level's name and a button to continue, and the last level shows a finish
+  message with a "Play Again" button that loops back to Level 1.
+- **Fall recovery** — falling below a level's fall threshold (into a gap) respawns
+  you at the level's start, not a hard failure/game-over.
 - **Real physics** (Havok, WASM) — a capsule character controller with gravity,
-  ground collision, and jumping, not simple AABB overlap checks.
+  platform collision, and jumping, not simple AABB overlap checks.
 - **A real rigged, animated character** — Babylon's official free glTF demo asset
   (`HVGirl.glb`, loaded from `assets.babylonjs.com`, Babylon's own CDN for this
   exact purpose), with idle/walk/run/jump animation groups cross-faded by keyword
@@ -26,7 +29,7 @@ plane. It exists to prove the toolchain works, not to be played.
   guaranteed stable across exports).
 - **Dynamic lighting and shadows** — a directional "sun" casting real shadow maps
   (`ShadowGenerator`, blurred exponential shadow map) plus ambient fill light, PBR
-  materials on the ground and platforms.
+  materials on every platform.
 - **A post-processing pipeline** — bloom, FXAA, ACES-ish tone mapping, film grain,
   sharpen (`DefaultRenderingPipeline`), and screen-space ambient occlusion
   (`SSAO2RenderingPipeline`). These are Babylon's own built-in pipelines, not custom
@@ -39,10 +42,12 @@ plane. It exists to prove the toolchain works, not to be played.
 Contrasted against the original "AAA" feature ask, these are out of scope for a
 browser engine like this and were not attempted: motion capture pipelines, ragdoll
 physics, global illumination, volumetric fog, cloth simulation, 30–100 designed
-levels, a skill tree, photo mode, leaderboards, or cloud save. Bloom/SSAO/shadows are
-the realistic subset of "AAA visual quality" that a browser engine can actually
+levels (this has 4), a skill tree, leaderboards, or cloud save. Bloom/SSAO/shadows
+are the realistic subset of "AAA visual quality" that a browser engine can actually
 deliver; the rest would require either a custom native engine or scope no browser
-game reasonably takes on.
+game reasonably takes on. There's also no enemies/hazards, no collectibles, no
+touch controls, and no save system (progress doesn't persist across a reload) —
+all reasonable next steps if this grows further, but out of scope for this pass.
 
 ## Verified (automated, via headless browser — Playwright/Chromium)
 
@@ -80,6 +85,33 @@ responds to WASD movement (confirmed position actually changes), jumps (confirme
 upward velocity and a visibly different jump animation pose), and no console errors
 or failed requests occur through a full load-and-interact pass.
 
+Building the level system (going from one scene to four, with fall-recovery
+respawn) surfaced a fifth real bug, caught the same way — by checking actual
+position/velocity numbers over time, not by reading the code and assuming it worked:
+
+5. **Respawn teleport caused runaway upward drift instead of a clean snap** — the
+   first respawn implementation used `PhysicsBody.setTargetTransform()`, which
+   despite the name is not a teleport — Havok's own docs describe it as making the
+   body *seek toward* a target by adjusting velocity over time. Combined with the
+   character controller's own per-frame `setLinearVelocity()` calls, the two fought
+   each other: sampled position every 200ms after a respawn call and watched Y climb
+   unbounded (1.15 → 1.69 → 2.13 → 2.71...) while X/Z froze mid-air, instead of
+   settling at the target. Fixed by using the actual documented teleport mechanism —
+   flipping `body.disablePreStep` off for exactly one physics step (via
+   `scene.onAfterRenderObservable.addOnce()`) so the body pulls its transform from
+   the node once, then flipping it back — confirmed by re-sampling position, which
+   now snaps to the exact target and settles under normal gravity afterward.
+
+Level progression itself (goal detection, the "Level Complete" overlay with correct
+per-level text, the next-level button, the final "all complete" message, and looping
+back to Level 1) was driven through all 4 levels via real button clicks (not direct
+function calls) with zero errors. Level 1's actual platforming was also attempted
+with genuine simulated keyboard input (not teleporting) — a scripted bot holding
+forward and jumping reactively (jump when grounded) cleared 4 of its 5 platforms
+before missing the final jump on its own crude timing; a human with real-time visual
+feedback should reasonably do better, but **this does not constitute proof a human
+can complete any given level** — see "Not verified" below.
+
 ## Not verified
 
 - **Real device/browser testing** — everything above ran under headless Chromium
@@ -92,6 +124,12 @@ or failed requests occur through a full load-and-interact pass.
   WASM payload, both far heavier than the 2D game's bundle.
 - **Mobile/touch controls** — keyboard-only; no on-screen touch controls exist for
   this prototype.
+- **Actual human completability/difficulty of Levels 2–4** — only Level 1 was
+  attempted with a scripted "real input" bot (see above), and even that didn't
+  cleanly finish. Levels 2–4's gap sizes are derived from the same jump-range math
+  as Level 1 but were only confirmed reachable via the teleport-based goal-detection
+  test, not via genuine platforming. Real human playtesting is the actual next step
+  before treating the difficulty curve as finished/tuned.
 
 ## A deliberate size/reliability trade-off
 
@@ -102,9 +140,8 @@ first and produced a real, reproducible bug — `Bone is not a constructor` — 
 a circular-dependency initialization-order issue between hand-picked submodules that
 isn't present when going through Babylon's own officially-tested main entry point.
 Switching to the bare imports fixed it immediately and reproducibly. The cost is
-bundle size (6.6MB tree-shaken vs. 15.3MB full); for a vertical-slice prototype,
-correctness won that trade-off. Revisiting tree-shaking would be reasonable before
-this became a real shipped game.
+bundle size (6.6MB tree-shaken vs. 15.3MB full); correctness won that trade-off.
+Revisiting tree-shaking would be reasonable before this ships more broadly.
 
 ## Running it locally
 
