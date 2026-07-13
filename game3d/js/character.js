@@ -170,7 +170,7 @@ export async function loadCharacter(scene, shadowGenerator, startPos = [0, 0.05,
   let grounded = true;
   let facing = 0; // radians
 
-  function update(input, deltaSeconds) {
+  function update(input, deltaSeconds, movingPlatforms) {
     const body = aggregate.body;
     const vel = body.getLinearVelocity();
 
@@ -179,10 +179,27 @@ export async function loadCharacter(scene, shadowGenerator, startPos = [0, 0.05,
     const hit = scene.pickWithRay({ origin: rayOrigin, direction: new Vector3(0, -1, 0), length: 1.1 }, (m) => !result.meshes.includes(m));
     grounded = !!(hit && hit.hit);
 
+    // If standing on a moving platform, add its current slide velocity to
+    // our own so the player rides along instead of the platform sliding
+    // out from under them. Needed because we set linear velocity outright
+    // every frame below (for precise, arcade-style control) — that would
+    // otherwise cancel out whatever velocity Havok's own friction carry
+    // imparts, leaving the platform's motion with zero actual effect on
+    // the standing player.
+    let platformVelX = 0;
+    let platformVelZ = 0;
+    if (grounded && movingPlatforms) {
+      const platform = movingPlatforms.find((mp) => mp.body.transformNode === hit.pickedMesh);
+      if (platform) {
+        if (platform.axis === "x") platformVelX = platform.velocity;
+        else platformVelZ = platform.velocity;
+      }
+    }
+
     const moving = input.x !== 0 || input.z !== 0;
     const speed = input.run ? RUN_SPEED : MOVE_SPEED;
-    const desiredX = input.x * speed;
-    const desiredZ = input.z * speed;
+    const desiredX = input.x * speed + platformVelX;
+    const desiredZ = input.z * speed + platformVelZ;
     body.setLinearVelocity(new Vector3(desiredX, vel.y, desiredZ));
 
     if (input.jumpPressed && grounded) {

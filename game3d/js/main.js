@@ -210,7 +210,7 @@ async function main() {
         }
       }
 
-      character.update({ x, z, run: raw.run, jumpPressed: raw.jumpPressed }, dt);
+      character.update({ x, z, run: raw.run, jumpPressed: raw.jumpPressed }, dt, levelObjects.movingPlatforms);
 
       const data = LEVELS[levelIndex];
       if (character.root.position.y < data.fallThreshold) {

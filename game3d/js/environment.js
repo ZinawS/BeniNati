@@ -138,6 +138,12 @@ export function updateMovingPlatforms(movingPlatforms, dt) {
     const pos = mp.basePos.clone();
     pos[mp.axis] += offset;
     mp.body.setTargetTransform(pos, mp.body.transformNode.rotationQuaternion);
+    // Analytic derivative of the sine offset above — the platform's exact
+    // instantaneous velocity along its axis right now. character.js reads
+    // this to carry a standing player along (Havok's own contact friction
+    // isn't enough by itself, since the character controller sets its own
+    // linear velocity outright every frame).
+    mp.velocity = Math.cos(mp.elapsed * mp.speed) * mp.range * mp.speed;
   });
 }
 
