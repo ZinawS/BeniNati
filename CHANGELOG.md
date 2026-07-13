@@ -4,6 +4,25 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is
 [Semantic Versioning](https://semver.org/).
 
+## [1.14.0] — Real difficulty progression across worlds (2D game)
+
+### Fixed
+- Boss HP had two real regressions in the world-to-world progression —
+  Crystal Cave (world 6) and Haunted Forest/Cyber City (worlds 7-8) all had
+  *lower* boss HP than Volcano World (world 5) before them, so the difficulty
+  curve actually dipped partway through instead of climbing. Rebalanced to a
+  properly non-decreasing curve: `4, 5, 5, 6, 7, 8, 9, 10, 15` (verified
+  programmatically, not just by eyeballing the numbers), with a bigger jump
+  on the final fortress boss for a real climactic fight.
+- Enemy patrol speed and boss attack pace previously had exactly two
+  settings — normal, or Nightmare Mode (only unlockable after finishing the
+  game once) — with nothing in between, so World 9's boss attacked at
+  identical speed to World 1's on a first playthrough. Added a
+  `difficultyScale` factor (`1 + worldIndex * 0.08`) applied to both, so
+  difficulty now actually ramps up through a normal playthrough. Verified
+  with real running-scene values: World 1 stays at the original 1.5 enemy
+  speed / 2500ms boss attack delay; World 9 is 2.46 speed / ~1524ms delay.
+
 ## [1.13.0] — Mobile viewport/HUD fixes (2D game)
 
 ### Fixed

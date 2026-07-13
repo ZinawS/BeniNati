@@ -636,7 +636,7 @@
       theme: 5,
       friend: "Pip the Bat",
       bossName: "Gemstone Golem",
-      bossHP: 5,
+      bossHP: 8,
       bossColor: 10053375,
       bossX: 24,
       bossY: 2,
@@ -650,7 +650,7 @@
       theme: 6,
       friend: "Wisp the Ghost Fox",
       bossName: "The Hollow Reaper",
-      bossHP: 6,
+      bossHP: 9,
       bossColor: 5583735,
       bossX: 24,
       bossY: 2,
@@ -664,7 +664,7 @@
       theme: 7,
       friend: "Byte the Robot Dog",
       bossName: "AI Overmind",
-      bossHP: 6,
+      bossHP: 10,
       bossColor: 65484,
       bossX: 26,
       bossY: 2,
@@ -678,7 +678,7 @@
       theme: 8,
       friend: "Everyone (final rescue!)",
       bossName: "Cogsworth's Ultimate Titan",
-      bossHP: 10,
+      bossHP: 15,
       bossColor: 4465186,
       bossX: 28,
       bossY: 3,
@@ -1897,6 +1897,7 @@
       this.comboTimer = null;
       const save = Save.current();
       this.nightmare = save.nightmareMode && save.gameCompleted;
+      this.difficultyScale = 1 + this.worldIndex * 0.08;
     }
     create() {
       fadeInScene(this);
@@ -2053,7 +2054,7 @@
             let e = this.enemies.create(px, py, "enemy").setTint(this.theme.groundBody);
             e.startX = px;
             e.dir = 1;
-            e.speed = this.nightmare ? 2.4 : 1.5;
+            e.speed = (this.nightmare ? 2.4 : 1.5) * this.difficultyScale;
           } else if (ch === "M") {
             let mp = this.physics.add.image(px, py, "ground" + this.world.theme);
             mp.setImmovable(true);
@@ -2161,7 +2162,8 @@
           this.inputLocked = false;
         });
       });
-      this.bossAttackTimer = this.time.addEvent({ delay: this.nightmare ? 1800 : 2500, callback: () => this.bossAttack(), loop: true });
+      this.bossBaseAttackDelay = (this.nightmare ? 1800 : 2500) / this.difficultyScale;
+      this.bossAttackTimer = this.time.addEvent({ delay: this.bossBaseAttackDelay, callback: () => this.bossAttack(), loop: true });
       this.drawBossBar();
       const escapeHint = this.bossRush ? "" : " Or get past it and keep running to escape the fight entirely!";
       this.showHint(`BOSS: ${this.world.bossName}! Wait for it to flash YELLOW, then jump on it or dash into it!${escapeHint}`);
@@ -2260,11 +2262,11 @@
       }
       if (this.bossHP <= this.bossMaxHP * 0.66 && this.bossPhase === 1) {
         this.bossPhase = 2;
-        this.bossAttackTimer.delay = 1800;
+        this.bossAttackTimer.delay = this.bossBaseAttackDelay * 0.72;
       }
       if (this.bossHP <= this.bossMaxHP * 0.33 && this.bossPhase === 2) {
         this.bossPhase = 3;
-        this.bossAttackTimer.delay = 1200;
+        this.bossAttackTimer.delay = this.bossBaseAttackDelay * 0.48;
       }
       if (this.bossHP <= 0) this.bossDefeated();
     }

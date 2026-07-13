@@ -45,6 +45,13 @@ export class GameScene extends Phaser.Scene {
     this.comboTimer = null;
     const save = Save.current();
     this.nightmare = save.nightmareMode && save.gameCompleted;
+    // Enemy speed and boss attack pace previously only had two settings
+    // (normal / Nightmare Mode) with nothing in between — a player fighting
+    // World 9's boss faced exactly the same attack rate as World 1's, unless
+    // they'd already beaten the game once to unlock Nightmare Mode. This
+    // scales gradually with the actual world reached, so difficulty ramps up
+    // through a first playthrough too, not just as an all-or-nothing toggle.
+    this.difficultyScale = 1 + this.worldIndex * 0.08;
   }
 
   create() {
@@ -211,7 +218,8 @@ export class GameScene extends Phaser.Scene {
         else if (ch === "G") this.goal.create(px, py - 20, "goal");
         else if (ch === "N") {
           let e = this.enemies.create(px, py, "enemy").setTint(this.theme.groundBody);
-          e.startX = px; e.dir = 1; e.speed = this.nightmare ? 2.4 : 1.5;
+          e.startX = px; e.dir = 1;
+          e.speed = (this.nightmare ? 2.4 : 1.5) * this.difficultyScale;
         } else if (ch === "M") {
           let mp = this.physics.add.image(px, py, "ground" + this.world.theme);
           mp.setImmovable(true);
@@ -324,7 +332,11 @@ export class GameScene extends Phaser.Scene {
       });
     });
 
-    this.bossAttackTimer = this.time.addEvent({ delay: this.nightmare ? 1800 : 2500, callback: () => this.bossAttack(), loop: true });
+    // Divide (not multiply) by difficultyScale: a *shorter* delay means
+    // *faster*, harder attacks, and later worlds should attack faster, not
+    // slower — same scale factor used for enemy patrol speed, just inverted.
+    this.bossBaseAttackDelay = (this.nightmare ? 1800 : 2500) / this.difficultyScale;
+    this.bossAttackTimer = this.time.addEvent({ delay: this.bossBaseAttackDelay, callback: () => this.bossAttack(), loop: true });
     this.drawBossBar();
     const escapeHint = this.bossRush ? "" : " Or get past it and keep running to escape the fight entirely!";
     this.showHint(`BOSS: ${this.world.bossName}! Wait for it to flash YELLOW, then jump on it or dash into it!${escapeHint}`);
@@ -427,8 +439,8 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.bossHP <= this.bossMaxHP * 0.66 && this.bossPhase === 1) { this.bossPhase = 2; this.bossAttackTimer.delay = 1800; }
-    if (this.bossHP <= this.bossMaxHP * 0.33 && this.bossPhase === 2) { this.bossPhase = 3; this.bossAttackTimer.delay = 1200; }
+    if (this.bossHP <= this.bossMaxHP * 0.66 && this.bossPhase === 1) { this.bossPhase = 2; this.bossAttackTimer.delay = this.bossBaseAttackDelay * 0.72; }
+    if (this.bossHP <= this.bossMaxHP * 0.33 && this.bossPhase === 2) { this.bossPhase = 3; this.bossAttackTimer.delay = this.bossBaseAttackDelay * 0.48; }
     if (this.bossHP <= 0) this.bossDefeated();
   }
 
