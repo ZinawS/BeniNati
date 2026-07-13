@@ -3,3 +3,13 @@
 # explicit rather than relying on an implicit default.
 [build]
   publish = "."
+
+# Netlify usually infers .wasm correctly on its own, but explicit beats
+# implicit here: a wrong Content-Type makes the 3D game's
+# WebAssembly.compileStreaming() call reject with "Incorrect response MIME
+# type. Expected 'application/wasm'." (still recoverable — it falls back to
+# the slower ArrayBuffer path — but this avoids that fallback entirely).
+[[headers]]
+  for = "/game3d/dist/*.wasm"
+  [headers.values]
+    Content-Type = "application/wasm"

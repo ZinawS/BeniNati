@@ -4,6 +4,20 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is
 [Semantic Versioning](https://semver.org/).
 
+## [1.15.1] — .wasm MIME type on shared hosting
+
+### Fixed
+- Reported in the wild: `wasm streaming compile failed: ... Incorrect
+  response MIME type. Expected 'application/wasm'.` on the 3D game. A server
+  that doesn't already map `.wasm` → `application/wasm` (common on shared
+  Apache hosting with no explicit `AddType`) sends the wrong `Content-Type`
+  for `game3d/dist/HavokPhysics.wasm`, which `WebAssembly.compileStreaming()`
+  rejects — not fatal (Babylon's loader falls back to the slower
+  non-streaming path automatically) but worth fixing for a faster first
+  load. Added `AddType application/wasm .wasm` to `.htaccess` and an
+  explicit `Content-Type` header rule to `netlify.toml`. Not independently
+  verified against a real deployed host — see docs/QA_NOTES.md.
+
 ## [1.15.0] — 3D game: touch controls, lives, moving-platform hazards, outfits
 
 ### Added

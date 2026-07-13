@@ -10,4 +10,12 @@ Options -Indexes
 <IfModule mod_mime.c>
   AddType application/javascript .js
   AddType text/css .css
+  # Without this, a host that doesn't already know the .wasm MIME type sends
+  # something else (often application/octet-stream), which makes
+  # WebAssembly.compileStreaming()/instantiateStreaming() reject with
+  # "Incorrect response MIME type. Expected 'application/wasm'." — the 3D
+  # game's Havok physics engine (game3d/dist/HavokPhysics.wasm) still loads
+  # via the slower ArrayBuffer fallback when that happens, so this isn't
+  # fatal, just worth fixing for a faster first load.
+  AddType application/wasm .wasm
 </IfModule>

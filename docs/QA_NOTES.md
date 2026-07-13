@@ -134,6 +134,18 @@ screen:
   and physics group sizes are modest, so 60fps on a normal laptop/phone is expected
   but not measured; "no lag" and "60+ FPS on mobile" specifically have not been
   confirmed.
+- **`.wasm` MIME type on the actual deployed host** — reported in the wild: `wasm
+  streaming compile failed: ... Incorrect response MIME type. Expected
+  'application/wasm'.` for the 3D game's Havok physics WASM. Root cause: a server
+  that doesn't already map `.wasm` → `application/wasm` (common on shared Apache
+  hosting without an explicit `AddType`) sends the wrong `Content-Type`, which
+  `WebAssembly.compileStreaming()` rejects — not fatal, Babylon's loader falls back
+  to the slower non-streaming `ArrayBuffer` path automatically, but worth fixing for
+  a faster first load. Added `AddType application/wasm .wasm` to `.htaccess` and an
+  explicit `Content-Type` header rule to `netlify.toml`. **Not independently
+  verified** — would need to check the actual response headers from a real deployed
+  host (`curl -I <url>/game3d/dist/HavokPhysics.wasm`), which this project can't do
+  without knowing that URL.
 
 ## Known issue history: mobile audio
 
