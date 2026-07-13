@@ -24,9 +24,20 @@ different entry point (`game3d/index.html`).
   and more numerous by Level 4, as one concrete way difficulty ramps up beyond just
   bigger gaps.
 - **A lives system** — 3 lives per run (❤ icons, top-right). Falling into a gap
-  costs a life and respawns you at the level start; running out shows a "Game Over"
-  overlay with a "Retry from Level 1" button, instead of infinite free respawns.
-  Lives carry across levels within a run and reset to 3 on a fresh run.
+  costs a life and respawns you at the last activated checkpoint (or the level
+  start, if none yet); running out shows a "Game Over" overlay with a "Retry from
+  Level 1" button, instead of infinite free respawns. Lives carry across levels
+  within a run and reset to 3 on a fresh run.
+- **Bonus ring collectibles + mid-level checkpoints** (`game3d/js/levels.js`,
+  rendered/tracked via `environment.js` and `main.js`) — small spinning cyan tori
+  along each level's path (💎 counter, top-right), optional and not required to
+  finish the level, plus 1-2 beacon checkpoints per level (dim gray, lights up
+  green once reached) that become the fall-respawn point. Neither is placed on a
+  `moving` platform, since their visuals don't ride along with the slide.
+- **Saved progress** (`game3d/js/save.js`, one shared `localStorage` save — no
+  per-profile system like the 2D game) — tracks the furthest level reached and the
+  best ring count per level, so reloading the page auto-resumes at that level
+  instead of always restarting from Level 1.
 - **5 selectable jumper outfits** (`game3d/js/personas.js`) — a character-select
   screen before the game starts, recoloring only the T-shirt/shorts materials
   (never skin/hair/eyes). Not 5 different character *models* — see "What it
@@ -68,10 +79,10 @@ surfaced several real bugs (see "Verified" below). Recoloring the same rig is th
 same idea most platformers use for cheap, low-risk character variety, without the
 asset-sourcing/rigging risk of swapping the actual mesh per option.
 
-There's also no enemies (moving platforms are the only hazard so far), no
-collectibles, and no save system (progress and lives don't persist across a page
-reload) — reasonable next steps if this grows further, but out of scope for this
-pass.
+There's also no enemies (moving platforms are the only hazard so far), no audio at
+all, and no level-select screen (saved progress auto-resumes at the furthest level
+reached, but there's no way to jump back to an earlier one on purpose) — reasonable
+next steps if this grows further, but out of scope for this pass.
 
 ## Verified (automated, via headless browser — Playwright/Chromium)
 

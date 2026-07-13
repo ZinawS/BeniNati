@@ -4,6 +4,26 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is
 [Semantic Versioning](https://semver.org/).
 
+## [1.17.0] — Collectibles, checkpoints, saved progress (3D game)
+
+### Added
+- **Bonus ring collectibles** — small spinning cyan tori scattered along each
+  level's path, optional (not required to reach the goal), tracked with a
+  live HUD counter (💎) and a per-level best count.
+- **Mid-level checkpoints** — 1-2 beacon poles per level that light up green
+  once reached and become the fall-respawn point, instead of every fall
+  always sending you back to the level start.
+- **Saved progress** — the furthest level reached and best ring count per
+  level now persist in `localStorage`, so reloading the page auto-resumes
+  at that level instead of always restarting from Level 1.
+
+### Fixed
+- **Character always faced the camera instead of facing away** — both
+  character models sit at a -Z facing at their imported identity rotation,
+  not +Z, so the movement code's yaw math had them facing the viewer no
+  matter which way they walked. Added a yaw offset so moving into the
+  level now correctly turns the character away from the camera.
+
 ## [1.16.0] — Portrait mode + real mobile layout overflow fixes (2D game)
 
 ### Added
