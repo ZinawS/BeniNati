@@ -2,33 +2,51 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Nati & Beniyas's Speedy Adventure</title>
-    <link rel="stylesheet" href="css/main.css" />
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Nati & Beniyas's Speedy Adventure — Choose a Game</title>
+    <link rel="stylesheet" href="css/dashboard.css" />
   </head>
   <body>
-    <div id="game-wrapper">
-      <div id="game-container"></div>
-    </div>
-    <div id="orientation-guard">
-      <div class="card">
-        <div class="icon">📱</div>
-        <h2>Rotate to Landscape</h2>
-        <p>This game plays best sideways — turn your device to landscape to continue.</p>
+    <div class="dashboard">
+      <header class="dashboard-header">
+        <h1>Nati &amp; Beniyas's Speedy Adventure</h1>
+        <p class="tagline">Pick a version to play</p>
+      </header>
+
+      <div class="card-grid">
+        <a class="game-card" href="2d/index.html">
+          <div class="card-badge">Live &middot; 9 worlds, boss fights, achievements</div>
+          <div class="card-art card-art-2d" aria-hidden="true">
+            <div class="art-sprite"></div>
+          </div>
+          <h2>2D Platformer</h2>
+          <p>
+            The original side-scrolling adventure — 9 worlds, boss fights (with
+            escape routes), Boss Rush mode, achievements, and full mobile/TV
+            support. Works in every browser, including smart TVs.
+          </p>
+          <span class="play-button">Play the 2D Game</span>
+        </a>
+
+        <a class="game-card" href="game3d/index.html">
+          <div class="card-badge card-badge-proto">Prototype &middot; physics + 3D character</div>
+          <div class="card-art card-art-3d" aria-hidden="true">
+            <div class="art-cube"></div>
+          </div>
+          <h2>3D Prototype</h2>
+          <p>
+            An experimental Babylon.js vertical slice — real physics, a rigged
+            animated character, dynamic shadows, and bloom/SSAO
+            post-processing. No levels yet, just a proof of concept. Needs a
+            modern desktop browser with WebGL2.
+          </p>
+          <span class="play-button play-button-alt">Try the 3D Prototype</span>
+        </a>
       </div>
+
+      <footer class="dashboard-footer">
+        <p>Best played in landscape on mobile. The 3D prototype needs a desktop-class GPU.</p>
+      </footer>
     </div>
-    <!--
-      Bundled from js/ (ES modules, easier to maintain) into a single
-      classic script via esbuild — NOT type="module". Smart TV browsers
-      (Samsung/LG etc.) and other older embedded WebKit engines frequently
-      have partial-to-no support for <script type="module">, which is a
-      likely reason the game wouldn't load at all on a Samsung TV browser
-      with no visible error. A plain bundled script has none of that risk,
-      and as a bonus works over file:// too (no more "needs a local server"
-      caveat for local testing). Run `npm run build` after editing js/ to
-      regenerate dist/bundle.js — see README.md.
-    -->
-    <script src="dist/bundle.js"></script>
   </body>
 </html>

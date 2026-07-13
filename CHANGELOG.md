@@ -4,6 +4,29 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is
 [Semantic Versioning](https://semver.org/).
 
+## [1.9.0] — Landing dashboard, 3D prototype
+
+### Added
+- A small landing dashboard at the repository root (`index.html`) linking to the
+  2D game and a new experimental 3D prototype, so both are reachable from one
+  entry point instead of only the 2D game living at the root URL.
+- `game3d/` — a standalone Babylon.js vertical-slice prototype (physics-driven
+  character controller, a rigged/animated glTF character, dynamic shadows,
+  bloom/SSAO post-processing). Not a game — see `docs/3D_PROTOTYPE.md` for
+  honest scope, what's verified, and the real runtime bugs found and fixed
+  while building it (WASM path resolution, glTF loader plugin registration, a
+  degenerate physics capsule, and a 13x mesh scale/orientation mismatch).
+
+### Changed
+- The 2D game moved from the repository root into `2d/` (`2d/index.html`,
+  `2d/js/`, `2d/css/`, `2d/dist/`, `2d/legacy/`) so the root `index.html` could
+  become the dashboard instead. Purely a location change — re-verified via
+  headless browser that the game renders identically from its new path, and
+  `npm run build` was updated to point at the new `2d/js/main.js` →
+  `2d/dist/bundle.js` paths. `.htaccess` stays at the true repository root,
+  since it configures the actual server document root (now the dashboard's
+  directory), not the 2D game specifically.
+
 ## [1.8.0] — Boss escape routes
 
 ### Added

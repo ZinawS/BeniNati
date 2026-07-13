@@ -12,28 +12,35 @@ Transformation for the final fight.
 
 ## Play it
 
-`index.html` is at the repository root, so the site's root URL is the game — no
-subfolder in the path, and no server required: `index.html` loads `dist/bundle.js`
-(a plain, pre-built classic `<script>`, already committed to the repo) rather than
-raw ES modules, so it works straight from `file://` — just open `index.html`.
-
-If you'd rather serve it (e.g. to test exactly like a real deploy):
+The repository root `index.html` is a small **dashboard** — pick a game and it links
+you to the right subfolder. No server required for the dashboard itself, and no
+server required for the 2D game either (it works straight from `file://`); the 3D
+prototype needs to be served (WASM/ES modules generally require `http(s)://`, not
+`file://`).
 
 ```bash
 python3 -m http.server 8000
 # then open http://localhost:8000 in your browser
 ```
 
+- **2D Platformer** — `2d/index.html`. The full game: 9 worlds, boss fights, Boss
+  Rush, achievements, mobile/TV support. This is the one described in the rest of
+  this README.
+- **3D Prototype** — `game3d/index.html`. An experimental Babylon.js vertical slice
+  (physics, a rigged character, dynamic shadows, post-processing). Not a game yet —
+  see [`docs/3D_PROTOTYPE.md`](docs/3D_PROTOTYPE.md) for honest scope and limitations.
+
 > A legacy single-file version from earlier in this project's history is kept at
-> [`legacy/game-classic.html`](legacy/game-classic.html) for reference, but it's
-> missing everything from the profile system onward — not needed for normal use,
-> since the root `index.html` now works standalone the same way.
+> [`2d/legacy/game-classic.html`](2d/legacy/game-classic.html) for reference, but
+> it's missing everything from the profile system onward — not needed for normal
+> use, since `2d/index.html` now works standalone the same way.
 
 ## Development
 
-The source lives in `js/` as ES modules (see `docs/ARCHITECTURE.md`) — that's what
-you edit. `index.html` doesn't load it directly, though: it loads `dist/bundle.js`,
-a single classic script produced from `js/main.js` by [esbuild](https://esbuild.github.io/).
+The 2D game's source lives in `2d/js/` as ES modules (see `docs/ARCHITECTURE.md`) —
+that's what you edit. `2d/index.html` doesn't load it directly, though: it loads
+`2d/dist/bundle.js`, a single classic script produced from `2d/js/main.js` by
+[esbuild](https://esbuild.github.io/).
 
 **Why bundle instead of loading the ES modules directly**, like earlier versions of
 this project did: `<script type="module">` isn't reliably supported on older/embedded
@@ -42,23 +49,23 @@ all, with no visible error, on a Samsung TV browser). A bundled classic script h
 such dependency and works essentially everywhere, as a bonus also removing the need for
 a local server during development (no more CORS-on-`import` restriction to work around).
 
-If you change anything under `js/`, rebuild before testing or deploying:
+If you change anything under `2d/js/`, rebuild before testing or deploying:
 
 ```bash
 npm install   # once
-npm run build # regenerates dist/bundle.js — commit it along with your source changes
+npm run build # regenerates 2d/dist/bundle.js — commit it along with your source changes
 ```
 
-`dist/bundle.js` is committed to the repo (not `.gitignore`d) specifically so that
+`2d/dist/bundle.js` is committed to the repo (not `.gitignore`d) specifically so that
 deploying never requires anyone — including a shared host with no build pipeline,
 like Hostinger — to run a build step themselves.
 
 ## Deploying to shared/static hosting (Hostinger, etc.)
 
 Upload the contents of this repository to your host's public web folder (on
-Hostinger, that's `public_html`) — `index.html`, `css/`, `js/`, and everything else
-can go straight in, no subfolder. Because `index.html` sits at the root, the site
-loads automatically at your domain's root URL.
+Hostinger, that's `public_html`) — the root `index.html` (the dashboard), `2d/`,
+`game3d/`, and everything else can go straight in, no extra subfolder. Because
+`index.html` sits at the root, the site loads automatically at your domain's root URL.
 
 If you get a **403 Forbidden** on the root URL, it almost always means `index.html`
 isn't actually sitting directly in the folder your domain points at — a common

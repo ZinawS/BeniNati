@@ -2,15 +2,19 @@
 
 ## Module map
 
-`index.html` and `css/` sit at the repository root alongside this `js/` tree — see
-the README's "Deploying" section for why (it fixed a real 403 on shared hosting).
+The 2D game lives entirely under `2d/` — `2d/index.html` and `2d/css/` sit alongside
+this `js/` tree. The repository root `index.html` is a separate dashboard that links
+to `2d/index.html` (this game) and `game3d/index.html` (an unrelated 3D prototype,
+see `docs/3D_PROTOTYPE.md`) — see the README's "Play it" section. The 403-on-shared-
+hosting fix this structure preserves is about `index.html` sitting directly in the
+folder a domain points at; see the README's "Deploying" section.
 
-**This `js/` tree is source, not what ships.** `index.html` loads `dist/bundle.js` —
-`js/main.js` and everything it imports, bundled into one classic (non-module) script
-by esbuild (`npm run build`). The module structure below is for maintainability
-only; browsers never load these files directly. See the README's "Development"
-section for why (smart TV / old embedded browser compatibility) and the rebuild
-step you need after editing anything here.
+**This `js/` tree is source, not what ships.** `2d/index.html` loads
+`2d/dist/bundle.js` — `js/main.js` and everything it imports, bundled into one
+classic (non-module) script by esbuild (`npm run build`, from the repo root). The
+module structure below is for maintainability only; browsers never load these files
+directly. See the README's "Development" section for why (smart TV / old embedded
+browser compatibility) and the rebuild step you need after editing anything here.
 
 ```
 js/

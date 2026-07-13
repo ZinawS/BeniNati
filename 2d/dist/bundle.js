@@ -19,7 +19,7 @@
   };
   var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 
-  // js/config/themes.js
+  // 2d/js/config/themes.js
   var TILE = 40;
   function row(width, ...segs) {
     const arr = new Array(width).fill(" ");
@@ -49,7 +49,7 @@
     // Cogsworth's Fortress
   ];
 
-  // js/scenes/PreloadScene.js
+  // 2d/js/scenes/PreloadScene.js
   var PreloadScene = class extends Phaser.Scene {
     constructor() {
       super("Preload");
@@ -205,7 +205,7 @@
     }
   };
 
-  // js/config/levels.js
+  // 2d/js/config/levels.js
   var W0S1 = (() => {
     const w = 56;
     return [
@@ -558,7 +558,7 @@
     ];
   })();
 
-  // js/config/worlds.js
+  // 2d/js/config/worlds.js
   var VILLAIN = "Professor Cogsworth";
   var WORLDS = [
     {
@@ -702,7 +702,7 @@
     "Be curious!"
   ];
 
-  // js/config/abilities.js
+  // 2d/js/config/abilities.js
   var ABILITY_KEYS = [
     "doubleJump",
     "spinDash",
@@ -729,7 +729,7 @@
     return abilities;
   }
 
-  // js/systems/save.js
+  // 2d/js/systems/save.js
   var REGISTRY_KEY = "nati_beni_profiles_v1";
   var SAVE_KEY_PREFIX = "nati_beni_save_v1_";
   var DEFAULT_TINTS = [16777215, 16750899, 6750105, 16737996, 6737151, 16772710];
@@ -895,7 +895,7 @@
     }
   };
 
-  // js/systems/audio.js
+  // 2d/js/systems/audio.js
   var audioCtx = null;
   function getAudioCtx() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1143,7 +1143,7 @@
   };
   var Music = new MusicSystem();
 
-  // js/ui/uiHelpers.js
+  // 2d/js/ui/uiHelpers.js
   function makeButton(scene, x, y, label, onClick, opts = {}) {
     var _a, _b;
     const color = opts.color || "#ffcc00";
@@ -1207,7 +1207,7 @@
     scene.events.once("shutdown", () => scene.scale.off("resize", handler));
   }
 
-  // js/ui/soundIndicator.js
+  // 2d/js/ui/soundIndicator.js
   function addSoundIndicator(scene, x = 764, y = 24) {
     const icon = scene.add.text(x, y, "\u{1F508}", { fontSize: "22px" }).setOrigin(0.5).setScrollFactor(0).setDepth(2e3).setInteractive({ useHandCursor: true });
     const muted = () => {
@@ -1247,10 +1247,10 @@
     return icon;
   }
 
-  // js/systems/platform.js
+  // 2d/js/systems/platform.js
   var isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
-  // js/ui/soundSetupModal.js
+  // 2d/js/ui/soundSetupModal.js
   var SEEN_KEY = "nati_beni_sound_intro_seen_v1";
   function maybeShowSoundSetup(scene) {
     if (!isTouchDevice) return;
@@ -1328,7 +1328,7 @@
     return elements;
   }
 
-  // js/scenes/MainMenu.js
+  // 2d/js/scenes/MainMenu.js
   var MainMenu = class extends Phaser.Scene {
     constructor() {
       super("MainMenu");
@@ -1354,7 +1354,7 @@
     }
   };
 
-  // js/scenes/ProfileSelect.js
+  // 2d/js/scenes/ProfileSelect.js
   var ProfileSelect = class extends Phaser.Scene {
     constructor() {
       super("ProfileSelect");
@@ -1423,7 +1423,7 @@
     }
   };
 
-  // js/scenes/HowToPlay.js
+  // 2d/js/scenes/HowToPlay.js
   var HowToPlay = class extends Phaser.Scene {
     constructor() {
       super("HowToPlay");
@@ -1467,7 +1467,7 @@
     }
   };
 
-  // js/scenes/Settings.js
+  // 2d/js/scenes/Settings.js
   var VOLUME_STEPS = [1, 0.75, 0.5, 0.25, 0];
   function volumeBar(level) {
     const filled = Math.round(level * 5);
@@ -1523,7 +1523,7 @@
     }
   };
 
-  // js/scenes/WorldMap.js
+  // 2d/js/scenes/WorldMap.js
   var WorldMap = class extends Phaser.Scene {
     constructor() {
       super("WorldMap");
@@ -1615,7 +1615,7 @@
     }
   };
 
-  // js/systems/achievements.js
+  // 2d/js/systems/achievements.js
   var ACHIEVEMENTS = [
     { id: "first_blood", name: "First Blood", description: "Defeat your first enemy.", condition: (s) => s.stats.enemiesDefeated >= 1 },
     { id: "enemy_smasher", name: "Enemy Smasher", description: "Defeat 25 enemies.", condition: (s) => s.stats.enemiesDefeated >= 25 },
@@ -1640,7 +1640,7 @@
     return unlocked;
   }
 
-  // js/scenes/StatsScene.js
+  // 2d/js/scenes/StatsScene.js
   var StatsScene = class extends Phaser.Scene {
     constructor() {
       super("StatsScene");
@@ -1686,7 +1686,7 @@
     }
   };
 
-  // js/systems/input.js
+  // 2d/js/systems/input.js
   var InputController = class {
     constructor(scene) {
       this.scene = scene;
@@ -1831,7 +1831,7 @@
     }
   };
 
-  // js/scenes/GameScene.js
+  // 2d/js/scenes/GameScene.js
   var HOMING_RADIUS = 280;
   var GameScene = class extends Phaser.Scene {
     constructor() {
@@ -2686,7 +2686,7 @@ Click to continue`,
     }
   };
 
-  // js/ui/orientationGuard.js
+  // 2d/js/ui/orientationGuard.js
   function initOrientationGuard() {
     if (!isTouchDevice) return;
     const el = document.getElementById("orientation-guard");
@@ -2700,7 +2700,7 @@ Click to continue`,
     window.addEventListener("orientationchange", check);
   }
 
-  // js/main.js
+  // 2d/js/main.js
   var config = {
     type: Phaser.AUTO,
     parent: "game-container",

@@ -7,7 +7,7 @@ was run against a live page on real devices. Treat "Verified" as real, and
 
 ## Verified (automated, reproducible)
 
-- **JS syntax** — every file under `js/` parses cleanly as an ES module
+- **JS syntax** — every file under `2d/js/` parses cleanly as an ES module
   (`node --input-type=module --check`).
 - **Import graph resolves** — every `import`/`export` across all modules resolves to
   a real, correctly-named export, re-verified after the UI/audio/mobile rework.
@@ -21,14 +21,18 @@ was run against a live page on real devices. Treat "Verified" as real, and
   original monolithic file's level data to confirm no tile was dropped or corrupted
   during the file-split refactor.
 - **Bundle builds and parses cleanly** — `npm run build` succeeds, and the resulting
-  `dist/bundle.js` passes `node --check`. Confirmed it references the global
+  `2d/dist/bundle.js` passes `node --check`. Confirmed it references the global
   `Phaser` (22 call sites) rather than trying to bundle Phaser itself, which is the
   expected behavior since it's loaded separately via the CDN `<script>` tag.
+- **Dashboard navigation** — both dashboard links resolve to real, working pages,
+  confirmed via a real headless-browser click (not just checking the `href` string):
+  clicking through to `2d/index.html` renders the game canvas, clicking through to
+  `game3d/index.html` loads and hides the loading indicator with no console errors.
 
 Reproduce the import-graph check:
 
 ```bash
-cd js
+cd 2d/js
 cat > /tmp/phaser_stub.mjs << 'EOF'
 globalThis.Phaser = {
   Scene: class Scene {},
