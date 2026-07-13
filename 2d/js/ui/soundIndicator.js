@@ -10,7 +10,13 @@ import { isUnlocked, initAudioUnlock, getAudioCtx, SFX } from "../systems/audio.
 import { Save } from "../systems/save.js";
 
 export function addSoundIndicator(scene, x = 764, y = 24) {
-  const icon = scene.add.text(x, y, "🔈", { fontSize: "22px" })
+  // A solid backdrop, not just a bare emoji glyph — without one, this icon is
+  // screen-fixed (setScrollFactor(0)) but the *world* underneath it keeps
+  // scrolling, and on short mobile-landscape viewports the level's own
+  // geometry/colors can end up directly behind it, making a plain emoji hard
+  // to see or read as "part of the HUD" at all. Matches the pause icon's
+  // existing backdrop style for visual consistency.
+  const icon = scene.add.text(x, y, "🔈", { fontSize: "20px", backgroundColor: "#00000066", padding: { x: 6, y: 2 } })
     .setOrigin(0.5)
     .setScrollFactor(0)
     .setDepth(2000)

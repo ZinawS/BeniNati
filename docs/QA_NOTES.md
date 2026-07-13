@@ -36,6 +36,12 @@ was run against a live page on real devices. Treat "Verified" as real, and
   snapshot()`, ~99ms) and triggers a real, Playwright-detected file download —
   proven by asserting on an actual `download` browser event, not by trusting that
   the code "looks right."
+- **Mobile HUD visibility fix** — root-caused via a real headless-browser
+  screenshot on a short mobile-landscape viewport (844×390): the bare-emoji
+  sound icon visually blended into the level's ground tile behind it (no
+  backdrop panel, unlike the pause icon). Confirmed the fix by re-screenshotting
+  the identical scenario and visually diffing — the icon now has the same dark
+  backdrop as the pause icon and reads clearly regardless of what's behind it.
 - **Dashboard navigation** — both dashboard links resolve to real, working pages,
   confirmed via a real headless-browser click (not just checking the `href` string):
   clicking through to `2d/index.html` renders the game canvas, clicking through to
@@ -72,6 +78,13 @@ node -e "import('/tmp/phaser_stub.mjs').then(() => import('./main.js')).then(() 
 No shell command substitutes for these — they need an actual person on an actual
 screen:
 
+- **Safe-area-inset correctness on a genuinely notched device** —
+  `systems/platform.js`'s `safeAreaInsets()` reads `env(safe-area-inset-*)` via a
+  hidden probe element, used to keep gameplay HUD elements clear of notches/rounded
+  corners in landscape. This resolves to `0` in every environment this project can
+  actually test (headless Chromium doesn't simulate real device notches), so it's
+  additive and inert everywhere tested — not proven correct on real notched
+  hardware, just not capable of regressing anything either.
 - **Audio unlock on mobile Safari specifically** — `systems/audio.js` implements the
   standard fix (create + resume the `AudioContext` and play a silent buffer inside
   the very first `pointerdown`/`touchstart`/`keydown`), which is the documented

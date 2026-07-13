@@ -4,6 +4,26 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is
 [Semantic Versioning](https://semver.org/).
 
+## [1.11.0] — Mobile HUD visibility fix
+
+### Fixed
+- The sound icon (top-right, in gameplay and the main menu) had no background
+  panel behind it — just a bare emoji glyph. On short mobile-landscape
+  viewports, the level's own ground geometry can visually sit right behind it,
+  making it hard to see or read as HUD at all rather than part of the world.
+  Gave it the same solid backdrop the pause icon already had, right next to it.
+- The main menu's sound icon used a hardcoded `x=764` position rather than one
+  computed from the actual screen width, so on any screen not exactly that
+  wide it wasn't actually anchored to the corner the way it looked on the
+  screen it was built against.
+- Added safe-area-inset awareness (`env(safe-area-inset-*)`, needs the
+  already-set `viewport-fit=cover`) to every screen-edge-anchored gameplay HUD
+  element (score text, pause icon, sound icon) — phone notches/rounded
+  corners commonly sit on a *side* in landscape, not just the top, and edge-
+  flush UI can end up partly behind one. Resolves to 0 (no change) on
+  anything without a notch, so this can't regress existing layouts — it can
+  only add clearance where a real device needs it.
+
 ## [1.10.0] — Ring combo, more juice, Photo Mode
 
 Backported the realistically-achievable subset of a much larger "AAA feature"

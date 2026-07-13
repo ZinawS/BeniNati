@@ -3,6 +3,7 @@ import { getAudioCtx, initAudioUnlock } from "../systems/audio.js";
 import { makeButton, sceneTransition, fadeInScene, screenAnchors, autoRelayoutOnResize } from "../ui/uiHelpers.js";
 import { addSoundIndicator } from "../ui/soundIndicator.js";
 import { maybeShowSoundSetup } from "../ui/soundSetupModal.js";
+import { safeAreaInsets } from "../systems/platform.js";
 
 export class MainMenu extends Phaser.Scene {
   constructor() { super("MainMenu"); }
@@ -10,10 +11,11 @@ export class MainMenu extends Phaser.Scene {
   create() {
     initAudioUnlock();
     fadeInScene(this);
-    addSoundIndicator(this);
     autoRelayoutOnResize(this);
 
-    const { cx, height } = screenAnchors(this);
+    const { cx, height, width } = screenAnchors(this);
+    const inset = safeAreaInsets();
+    addSoundIndicator(this, width - 36 - inset.right, 24 + inset.top);
 
     this.add.text(cx, height * 0.18, "NATI & BENIYAS'S", { fontSize: "26px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
     const title = this.add.text(cx, height * 0.26, "SPEEDY ADVENTURE!", { fontSize: "40px", fill: "#0066ff", fontStyle: "bold", stroke: "#fff", strokeThickness: 4 }).setOrigin(0.5);

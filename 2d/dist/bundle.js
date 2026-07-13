@@ -1209,7 +1209,7 @@
 
   // 2d/js/ui/soundIndicator.js
   function addSoundIndicator(scene, x = 764, y = 24) {
-    const icon = scene.add.text(x, y, "\u{1F508}", { fontSize: "22px" }).setOrigin(0.5).setScrollFactor(0).setDepth(2e3).setInteractive({ useHandCursor: true });
+    const icon = scene.add.text(x, y, "\u{1F508}", { fontSize: "20px", backgroundColor: "#00000066", padding: { x: 6, y: 2 } }).setOrigin(0.5).setScrollFactor(0).setDepth(2e3).setInteractive({ useHandCursor: true });
     const muted = () => {
       try {
         const s = Save.current().settings;
@@ -1249,6 +1249,21 @@
 
   // 2d/js/systems/platform.js
   var isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  function safeAreaInsets() {
+    if (typeof document === "undefined") return { top: 0, right: 0, bottom: 0, left: 0 };
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left);";
+    document.body.appendChild(probe);
+    const cs = getComputedStyle(probe);
+    const insets = {
+      top: parseFloat(cs.paddingTop) || 0,
+      right: parseFloat(cs.paddingRight) || 0,
+      bottom: parseFloat(cs.paddingBottom) || 0,
+      left: parseFloat(cs.paddingLeft) || 0
+    };
+    probe.remove();
+    return insets;
+  }
 
   // 2d/js/ui/soundSetupModal.js
   var SEEN_KEY = "nati_beni_sound_intro_seen_v1";
@@ -1336,9 +1351,10 @@
     create() {
       initAudioUnlock();
       fadeInScene(this);
-      addSoundIndicator(this);
       autoRelayoutOnResize(this);
-      const { cx, height } = screenAnchors(this);
+      const { cx, height, width } = screenAnchors(this);
+      const inset = safeAreaInsets();
+      addSoundIndicator(this, width - 36 - inset.right, 24 + inset.top);
       this.add.text(cx, height * 0.18, "NATI & BENIYAS'S", { fontSize: "26px", fill: "#ffcc00", fontStyle: "bold" }).setOrigin(0.5);
       const title = this.add.text(cx, height * 0.26, "SPEEDY ADVENTURE!", { fontSize: "40px", fill: "#0066ff", fontStyle: "bold", stroke: "#fff", strokeThickness: 4 }).setOrigin(0.5);
       this.tweens.add({ targets: title, scale: { from: 0.9, to: 1 }, duration: 900, ease: "Bounce.easeOut" });
@@ -1933,15 +1949,18 @@
         this.player.body.velocity.y -= 28;
       }, null, this);
       this.controls = new InputController(this);
-      this.scoreText = this.add.text(16, 16, "", { fontSize: "18px", fill: "#fff", fontStyle: "bold", backgroundColor: "#000" }).setScrollFactor(0);
+      const inset = safeAreaInsets();
+      this.scoreText = this.add.text(16 + inset.left, 16 + inset.top, "", { fontSize: "18px", fill: "#fff", fontStyle: "bold", backgroundColor: "#000" }).setScrollFactor(0);
       this.scoreText.setPadding(10, 10, 10, 10);
       this.updateHUD();
-      this.soundIcon = addSoundIndicator(this, this.scale.width - 36, 56);
-      this.pauseIcon = this.add.text(this.scale.width - 36, 24, "\u23F8", { fontSize: "20px", fill: "#fff", backgroundColor: "#00000066", padding: { x: 6, y: 2 } }).setOrigin(0.5).setScrollFactor(0).setDepth(2e3).setInteractive({ useHandCursor: true });
+      this.soundIcon = addSoundIndicator(this, this.scale.width - 36 - inset.right, 56 + inset.top);
+      this.pauseIcon = this.add.text(this.scale.width - 36 - inset.right, 24 + inset.top, "\u23F8", { fontSize: "20px", fill: "#fff", backgroundColor: "#00000066", padding: { x: 6, y: 2 } }).setOrigin(0.5).setScrollFactor(0).setDepth(2e3).setInteractive({ useHandCursor: true });
       this.pauseIcon.on("pointerdown", () => this.togglePause());
       this._resizeHandler = (gameSize) => {
-        if (this.soundIcon) this.soundIcon.setPosition(gameSize.width - 36, 56);
-        if (this.pauseIcon) this.pauseIcon.setPosition(gameSize.width - 36, 24);
+        const inset2 = safeAreaInsets();
+        if (this.soundIcon) this.soundIcon.setPosition(gameSize.width - 36 - inset2.right, 56 + inset2.top);
+        if (this.pauseIcon) this.pauseIcon.setPosition(gameSize.width - 36 - inset2.right, 24 + inset2.top);
+        if (this.scoreText) this.scoreText.setPosition(16 + inset2.left, 16 + inset2.top);
         if (this.bossBarBg) this.drawBossBar();
       };
       this.scale.on("resize", this._resizeHandler);
