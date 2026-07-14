@@ -23,6 +23,15 @@ const COLLECTIBLE_RADIUS = 1.2;
 const CHECKPOINT_RADIUS = 1.5;
 const STARTING_LIVES = 3;
 
+// Shortest-path angle interpolation (handles the -PI/+PI wrap) — used to
+// ease the mobile chase camera back behind the character without ever
+// spinning the "long way around".
+function lerpAngle(from, to, t) {
+  const twoPi = Math.PI * 2;
+  let diff = ((to - from + Math.PI) % twoPi + twoPi) % twoPi - Math.PI;
+  return from + diff * t;
+}
+
 // Shown before anything Babylon-related even starts — it's plain DOM, no
 // engine/scene needed yet — and resolves once the player taps a swatch.
 function selectPersona() {
@@ -60,6 +69,22 @@ async function main() {
   camera.upperBetaLimit = Math.PI / 2.1;
   camera.wheelPrecision = 40;
   camera.attachControl(canvas, true);
+
+  // On touch, the whole canvas outside the small joystick/button zones still
+  // free-drags the camera (attachControl above) — nothing stops a stray
+  // thumb from orbiting it around to the character's front, which is what
+  // made the character *look* like it was facing the player even though its
+  // own facing math was already correct. Rather than rip out manual orbit
+  // (still handy for looking around), track whether a finger is actually
+  // down on the canvas right now, and whenever it isn't, ease the camera
+  // back to a standard chase position behind the character — the same
+  // "auto-recenter" behavior most mobile third-person games use.
+  let touchOrbitActive = false;
+  if (isTouchDevice) {
+    canvas.addEventListener("pointerdown", () => { touchOrbitActive = true; });
+    window.addEventListener("pointerup", () => { touchOrbitActive = false; });
+    window.addEventListener("pointercancel", () => { touchOrbitActive = false; });
+  }
 
   const { shadowGenerator } = buildEnvironment(scene);
   const character = await loadCharacter(scene, shadowGenerator, LEVELS[0].playerStart, persona);
@@ -239,6 +264,17 @@ async function main() {
           onGoalReached();
         }
       }
+    }
+
+    if (isTouchDevice && !touchOrbitActive) {
+      // Behind-the-character alpha, derived from the same atan2(x, z) facing
+      // convention character.js uses: the camera's (cos alpha, sin alpha)
+      // horizontal offset should point opposite the character's facing
+      // vector (sin f, cos f) so the player is always looking past the
+      // character's back, in the direction it's about to move/jump.
+      const f = character.facing;
+      const targetAlpha = Math.atan2(-Math.cos(f), -Math.sin(f));
+      camera.alpha = lerpAngle(camera.alpha, targetAlpha, Math.min(1, dt * 3));
     }
 
     camera.target = character.root.position.add(new Vector3(0, 1.4, 0));

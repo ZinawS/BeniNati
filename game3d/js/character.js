@@ -253,5 +253,15 @@ export async function loadCharacter(scene, shadowGenerator, startPos = [0, 0.05,
     crossFadeTo(anims.idle);
   }
 
-  return { root: anchor, update, respawn, body: aggregate.body, get grounded() { return grounded; } };
+  return {
+    root: anchor,
+    update,
+    respawn,
+    body: aggregate.body,
+    get grounded() { return grounded; },
+    // Current facing yaw in the same atan2(x, z) convention as `update`'s
+    // own math (i.e. NOT offset by FACING_YAW_OFFSET) — exposed so the
+    // camera can be driven to sit behind wherever the character last faced.
+    get facing() { return facing; },
+  };
 }

@@ -20,15 +20,22 @@ export function createTouchControls() {
   container.innerHTML = `
     <div id="touch-joystick-zone">
       <div id="touch-joystick-base">
+        <div id="touch-joystick-ring"></div>
         <div id="touch-joystick-knob"></div>
       </div>
     </div>
     <div id="touch-action-zone">
-      <button id="touch-run-btn" type="button">RUN</button>
-      <button id="touch-jump-btn" type="button">JUMP</button>
+      <button id="touch-run-btn" type="button" aria-label="Run">
+        <span class="touch-btn-icon">⚡</span><span class="touch-btn-label">RUN</span>
+      </button>
+      <button id="touch-jump-btn" type="button" aria-label="Jump">
+        <span class="touch-btn-icon">⬆</span><span class="touch-btn-label">JUMP</span>
+      </button>
     </div>
   `;
   hud.appendChild(container);
+
+  const vibrate = (ms) => { if (navigator.vibrate) navigator.vibrate(ms); };
 
   const zone = container.querySelector("#touch-joystick-zone");
   const knob = container.querySelector("#touch-joystick-knob");
@@ -40,6 +47,8 @@ export function createTouchControls() {
 
   function resetKnob() {
     knob.style.transform = "translate(-50%, -50%)";
+    knob.classList.remove("active");
+    zone.classList.remove("active");
     state.forwardAxis = 0;
     state.strafeAxis = 0;
   }
@@ -51,6 +60,8 @@ export function createTouchControls() {
     originX = rect.left + rect.width / 2;
     originY = rect.top + rect.height / 2;
     zone.setPointerCapture(e.pointerId);
+    knob.classList.add("active");
+    zone.classList.add("active");
   });
 
   zone.addEventListener("pointermove", (e) => {
@@ -82,7 +93,7 @@ export function createTouchControls() {
   runBtn.addEventListener("pointerout", releaseRun);
 
   let jumpHeld = false;
-  jumpBtn.addEventListener("pointerdown", () => { jumpHeld = true; jumpBtn.classList.add("active"); });
+  jumpBtn.addEventListener("pointerdown", () => { jumpHeld = true; jumpBtn.classList.add("active"); vibrate(12); });
   const releaseJump = () => { jumpHeld = false; jumpBtn.classList.remove("active"); };
   jumpBtn.addEventListener("pointerup", releaseJump);
   jumpBtn.addEventListener("pointercancel", releaseJump);
