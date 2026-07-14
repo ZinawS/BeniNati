@@ -131,7 +131,16 @@ export async function loadCharacter(scene, shadowGenerator, startPos = [0, 0.05,
     PhysicsShapeType.CAPSULE,
     {
       mass: 70,
-      friction: 0.4,
+      // Zero, not a small nonzero value: this controller sets linear
+      // velocity explicitly every frame for all horizontal movement (input,
+      // jumping, and now moving-platform carry — see update()), so Havok's
+      // own contact friction has no useful job to do here. Left nonzero, it
+      // was also transferring some of a moving platform's motion into the
+      // character on its own, on top of our explicit velocity/position
+      // control — the two effects stacked and made the character overshoot
+      // past the platform's own extremes (confirmed via headless
+      // diagnostic).
+      friction: 0,
       restitution: 0,
       radius: CAPSULE_RADIUS,
       pointA: new Vector3(0, CAPSULE_RADIUS, 0),
@@ -179,25 +188,25 @@ export async function loadCharacter(scene, shadowGenerator, startPos = [0, 0.05,
     const hit = scene.pickWithRay({ origin: rayOrigin, direction: new Vector3(0, -1, 0), length: 1.1 }, (m) => !result.meshes.includes(m));
     grounded = !!(hit && hit.hit);
 
-    // If standing on a moving platform, add its current slide velocity to
-    // our own so the player rides along instead of the platform sliding
-    // out from under them. Needed because we set linear velocity outright
-    // every frame below (for precise, arcade-style control) — that would
-    // otherwise cancel out whatever velocity Havok's own friction carry
-    // imparts, leaving the platform's motion with zero actual effect on
-    // the standing player.
-    let platformVelX = 0;
-    let platformVelZ = 0;
-    if (grounded && movingPlatforms) {
-      const platform = movingPlatforms.find((mp) => mp.body.transformNode === hit.pickedMesh);
-      if (platform) {
-        if (platform.axis === "x") platformVelX = platform.velocity;
-        else platformVelZ = platform.velocity;
-      }
-    }
+    const platform = (grounded && movingPlatforms)
+      ? movingPlatforms.find((mp) => mp.body.transformNode === hit.pickedMesh) || null
+      : null;
+    const platformVelX = platform && platform.axis === "x" ? platform.velocity : 0;
+    const platformVelZ = platform && platform.axis === "z" ? platform.velocity : 0;
 
     const moving = input.x !== 0 || input.z !== 0;
     const speed = input.run ? RUN_SPEED : MOVE_SPEED;
+    // Add the platform's velocity straight into our own commanded velocity
+    // (rather than nudging position directly) — a direct-position approach
+    // was tried and caused real instability: it needs the same one-step
+    // disablePreStep flip respawn() uses below, but doing that *every single
+    // frame* while grounded (instead of once, for an actual teleport) fights
+    // Havok's own simulation and occasionally launched the character
+    // straight up (confirmed via headless diagnostic). Velocity is the
+    // physically normal way to ride a moving body. Character friction is 0
+    // (see the PhysicsAggregate above) specifically so Havok's own contact
+    // friction can't *also* contribute a second, inconsistent transfer on
+    // top of this explicit one.
     const desiredX = input.x * speed + platformVelX;
     const desiredZ = input.z * speed + platformVelZ;
     body.setLinearVelocity(new Vector3(desiredX, vel.y, desiredZ));

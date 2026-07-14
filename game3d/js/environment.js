@@ -70,7 +70,7 @@ export function buildLevel(scene, levelData, shadowGenerator) {
       // a DYNAMIC body (the player) standing on it — real physics-driven
       // motion, not a purely visual slide with fake collision.
       aggregate.body.setMotionType(PhysicsMotionType.ANIMATED);
-      movingPlatforms.push({ body: aggregate.body, basePos: box.position.clone(), ...p.moving, elapsed: 0 });
+      movingPlatforms.push({ body: aggregate.body, basePos: box.position.clone(), ...p.moving, elapsed: 0, velocity: 0 });
     }
     aggregates.push(aggregate);
     meshes.push(box);
@@ -133,17 +133,25 @@ export function updateCollectibles(collectibles, dt) {
 // body would just ignore).
 export function updateMovingPlatforms(movingPlatforms, dt) {
   movingPlatforms.forEach((mp) => {
+    const prevOffset = Math.sin(mp.elapsed * mp.speed) * mp.range;
     mp.elapsed += dt;
     const offset = Math.sin(mp.elapsed * mp.speed) * mp.range;
-    const pos = mp.basePos.clone();
-    pos[mp.axis] += offset;
-    mp.body.setTargetTransform(pos, mp.body.transformNode.rotationQuaternion);
-    // Analytic derivative of the sine offset above — the platform's exact
-    // instantaneous velocity along its axis right now. character.js reads
-    // this to carry a standing player along (Havok's own contact friction
-    // isn't enough by itself, since the character controller sets its own
-    // linear velocity outright every frame).
-    mp.velocity = Math.cos(mp.elapsed * mp.speed) * mp.range * mp.speed;
+    const targetPos = mp.basePos.clone();
+    targetPos[mp.axis] += offset;
+
+    // mp.velocity is the exact discrete step this frame's setTargetTransform
+    // call is about to command, not the sine curve's calculus derivative and
+    // not a readback of Havok's own resolved mesh position — both of those
+    // were tried and both let a standing player drift off the platform
+    // (confirmed via headless diagnostic): the analytic derivative doesn't
+    // match a *discrete* step's average velocity, and reading Havok's
+    // resolved position back is noisy right after a level load. Using
+    // literally "how far we're about to move the target this step" gives
+    // character.js's velocity-matching carry (see update() there) the most
+    // accurate number available for what the platform is really about to do.
+    if (dt > 0) mp.velocity = (offset - prevOffset) / dt;
+
+    mp.body.setTargetTransform(targetPos, mp.body.transformNode.rotationQuaternion);
   });
 }
 

@@ -196,7 +196,19 @@ async function main() {
   if (loadingEl) loadingEl.classList.add("hidden");
 
   engine.runRenderLoop(() => {
-    const dt = engine.getDeltaTime() / 1000;
+    // Match Babylon's own physics-step clamp (physicsEngine.js _step(): delta
+    // capped at 0.1s before it ever reaches Havok) — otherwise, on any hitch
+    // longer than that (GC pause, texture decode, a slow mobile frame), our
+    // own dt-driven logic (the moving platform's sine position below, and the
+    // character's platform-velocity matching in character.js) advances by
+    // the full, uncapped hitch length while the physics simulation itself
+    // only ever advanced 0.1s worth of motion that step. That gap between
+    // "where we told the platform to go" and "how far physics actually
+    // simulated" never closes on its own — confirmed via headless
+    // diagnostic: repeated frame hitches left a standing player increasingly
+    // behind a fast-moving platform until it fell off the back of it
+    // entirely, the platform still visibly sliding on without it.
+    const dt = Math.min(engine.getDeltaTime() / 1000, 0.1);
 
     if (levelObjects && levelObjects.goalMesh) {
       levelObjects.goalMesh.rotation.y += dt * 1.5;
