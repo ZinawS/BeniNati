@@ -37,6 +37,23 @@ export const W0S2 = (() => {
     row(w, [0, "x".repeat(18)], [20, "x".repeat(16)], [38, "x".repeat(22)]),
   ];
 })();
+export const W0S3 = (() => {
+  // Hardest of the three normal Green Hills stages, right before the boss —
+  // no new tile types (nothing beyond W0S1/S2's own vocabulary, since the
+  // player still only has base movement here), just more of everything:
+  // wider gaps, more enemies, denser rings.
+  const w = 64;
+  return [
+    row(w, [22, "R R R"]),
+    row(w, [40, "R R"]),
+    row(w),
+    row(w, [16, "xxxx"], [36, "xxxx"]),
+    row(w, [12, "N"], [34, "N"], [50, "N"]),
+    row(w),
+    row(w, [2, "P"], [8, "R"], [10, "R"], [26, "C"], [42, "S"], [56, "R"], [58, "R"], [62, "G"]),
+    row(w, [0, "x".repeat(18)], [21, "x".repeat(9)], [33, "x".repeat(8)], [44, "x".repeat(20)]),
+  ];
+})();
 export const W0BOSS = (() => {
   // Extended past the boss's patrol range with an escape goal ('G') at the
   // far end — running/jumping past the boss to reach it skips the fight
@@ -79,6 +96,19 @@ export const W1S2 = (() => {
     row(w, [0, "x".repeat(20)], [22, "x".repeat(14)], [40, "x".repeat(22)]),
   ];
 })();
+export const W1S3 = (() => {
+  const w = 66;
+  return [
+    row(w, [16, "R R R"], [46, "R R"]),
+    row(w),
+    row(w, [30, "R"]),
+    row(w, [28, "xxxxx"]),
+    row(w, [12, "N"], [36, "N"], [54, "N"]),
+    row(w),
+    row(w, [2, "P"], [8, ">"], [24, "C"], [40, "S"], [50, "S"], [64, "G"]),
+    row(w, [0, "x".repeat(18)], [21, "x".repeat(15)], [39, "x".repeat(27)]),
+  ];
+})();
 export const W1BOSS = (() => {
   const w = 40; // extended for an escape route past the boss — see W0BOSS
   return [
@@ -115,6 +145,19 @@ export const W2S2 = (() => {
     row(w),
     row(w, [2, "P"], [8, "R"], [26, "D"], [42, "C"], [50, "S"], [56, "G"]),
     row(w, [0, "x".repeat(26)], [26, "D"], [27, "x".repeat(8)], [35, "I".repeat(4)], [39, "x".repeat(4)], [45, "x".repeat(15)]),
+  ];
+})();
+export const W2S3 = (() => {
+  const w = 64;
+  return [
+    row(w),
+    row(w, [12, "R R"], [48, "R R"]),
+    row(w, [12, "M"], [46, "M"]),
+    row(w, [32, "xxxx"]),
+    row(w, [16, "N"], [50, "N"]),
+    row(w),
+    row(w, [2, "P"], [8, "R"], [24, "D"], [40, "C"], [48, "S"], [56, "G"]),
+    row(w, [0, "x".repeat(24)], [24, "D"], [25, "x".repeat(8)], [33, "I".repeat(5)], [38, "x".repeat(26)]),
   ];
 })();
 export const W2BOSS = (() => {
@@ -156,6 +199,19 @@ export const W3S2 = (() => {
     row(w, [0, "x".repeat(24)], [27, "x".repeat(27)]),
   ];
 })();
+export const W3S3 = (() => {
+  const w = 58;
+  return [
+    row(w, [34, "R R"]),
+    row(w, [33, "xxxxxxxx"]),
+    row(w, [36, "W"], [38, "W"]),
+    row(w, [36, "W"], [38, "W"]),
+    row(w, [36, "W"], [38, "W"]),
+    row(w, [36, "W"], [38, "W"]),
+    row(w, [2, "P"], [8, "R"], [16, "N"], [24, "N"], [42, "C"], [50, "S"], [56, "G"]),
+    row(w, [0, "x".repeat(26)], [29, "x".repeat(29)]),
+  ];
+})();
 export const W3BOSS = (() => {
   const w = 40; // extended for an escape route past the boss — see W0BOSS
   return [
@@ -193,6 +249,19 @@ export const W4S2 = (() => {
     row(w),
     row(w, [2, "P"], [8, "R"], [20, "D"], [46, "C"], [54, "S"], [58, "G"]),
     row(w, [0, "x".repeat(20)], [20, "D"], [21, "x".repeat(13)], [40, "x".repeat(20)]),
+  ];
+})();
+export const W4S3 = (() => {
+  const w = 64;
+  return [
+    row(w, [14, "R R"], [46, "R R"]),
+    row(w),
+    row(w, [30, "M"]),
+    row(w, [50, "xxxx"]),
+    row(w, [22, "N"], [38, "N"]),
+    row(w),
+    row(w, [2, "P"], [8, "R"], [20, "D"], [44, "C"], [52, "S"], [60, "G"]),
+    row(w, [0, "x".repeat(20)], [20, "D"], [21, "x".repeat(15)], [39, "x".repeat(25)]),
   ];
 })();
 export const W4BOSS = (() => {
@@ -234,6 +303,19 @@ export const W5S2 = (() => {
     row(w, [0, "x".repeat(24)], [24, "K".repeat(6)], [30, "x".repeat(28)]),
   ];
 })();
+export const W5S3 = (() => {
+  const w = 62;
+  return [
+    row(w, [12, "R R"], [46, "R R"]),
+    row(w),
+    row(w, [30, "xxKKx"]),
+    row(w),
+    row(w, [16, "N"], [34, "N"], [48, "N"]),
+    row(w),
+    row(w, [2, "P"], [8, "R"], [42, "C"], [50, "S"], [58, "G"]),
+    row(w, [0, "x".repeat(22)], [22, "U".repeat(4)], [26, "x".repeat(10)], [36, "K".repeat(6)], [42, "x".repeat(20)]),
+  ];
+})();
 export const W5BOSS = (() => {
   const w = 40; // extended for an escape route past the boss — see W0BOSS
   return [
@@ -269,6 +351,19 @@ export const W6S2 = (() => {
     row(w, [26, "FFFFFF"]),
     row(w, [2, "P"], [8, "R"], [26, "FFFFFF"], [42, "C"], [50, "S"], [54, "G"]),
     row(w, [0, "x".repeat(24)], [38, "x".repeat(20)]),
+  ];
+})();
+export const W6S3 = (() => {
+  const w = 60;
+  return [
+    row(w, [16, "R R"], [44, "R R"], [24, "FFFFFF"], [38, "FFFFFF"]),
+    row(w, [24, "FFFFFF"], [38, "FFFFFF"]),
+    row(w, [24, "FFFFFF"], [38, "FFFFFF"], [32, "xxxx"]),
+    row(w, [14, "N"], [24, "FFFFFF"], [38, "FFFFFF"], [46, "N"]),
+    row(w, [24, "FFFFFF"], [38, "FFFFFF"]),
+    row(w, [24, "FFFFFF"], [38, "FFFFFF"]),
+    row(w, [2, "P"], [8, "R"], [24, "FFFFFF"], [38, "FFFFFF"], [44, "C"], [52, "S"], [56, "G"]),
+    row(w, [0, "x".repeat(22)], [34, "x".repeat(26)]),
   ];
 })();
 export const W6BOSS = (() => {
@@ -308,6 +403,19 @@ export const W7S2 = (() => {
     row(w, [0, "x".repeat(24)], [36, "x".repeat(24)]),
   ];
 })();
+export const W7S3 = (() => {
+  const w = 62;
+  return [
+    row(w, [14, "R R"], [48, "R R"]),
+    row(w),
+    row(w),
+    row(w),
+    row(w, [12, "N"], [34, "N"], [50, "N"]),
+    row(w, [24, "O"], [42, "O"]),
+    row(w, [2, "P"], [8, ">"], [46, "C"], [52, "S"], [58, "G"]),
+    row(w, [0, "x".repeat(20)], [40, "x".repeat(22)]),
+  ];
+})();
 export const W7BOSS = (() => {
   const w = 42; // extended for an escape route past the boss — see W0BOSS
   return [
@@ -343,6 +451,22 @@ export const W8S2 = (() => {
     row(w),
     row(w, [2, "P"], [8, "R"], [44, "C"], [52, "S"], [56, "G"]),
     row(w, [0, "x".repeat(20)], [20, "L".repeat(6)], [26, "x".repeat(14)], [40, "K".repeat(5)], [45, "x".repeat(15)]),
+  ];
+})();
+export const W8S3 = (() => {
+  // The hardest normal stage in the entire game — right before the final
+  // boss, so it stacks both of this world's own hazards (lava + crumbling)
+  // more densely than either W8S1 or W8S2 do individually.
+  const w = 64;
+  return [
+    row(w, [12, "R R"], [48, "R R"]),
+    row(w),
+    row(w, [30, "xxxx"]),
+    row(w),
+    row(w, [16, "N"], [34, "N"], [50, "N"]),
+    row(w),
+    row(w, [2, "P"], [8, "R"], [44, "C"], [54, "S"], [60, "G"]),
+    row(w, [0, "x".repeat(16)], [16, "LL"], [18, "x".repeat(10)], [28, "K".repeat(5)], [33, "x".repeat(9)], [42, "L".repeat(4)], [46, "x".repeat(18)]),
   ];
 })();
 export const W8BOSS = (() => {

@@ -114,11 +114,17 @@
       g.fillTriangle(0, 10, 40, 20, 0, 30);
       g.generateTexture("speedpad", 40, 40);
       g.clear();
-      g.fillStyle(15658734, 1);
-      g.fillRect(0, 0, 40, 80);
-      g.fillStyle(0, 1);
-      g.fillRect(10, 10, 20, 60);
-      g.generateTexture("goal", 40, 80);
+      g.fillStyle(15921906, 1);
+      g.fillRoundedRect(0, 0, 40, 80, 10);
+      g.fillStyle(1315868, 1);
+      g.fillRoundedRect(8, 10, 24, 62, 8);
+      g.generateTexture("door_closed", 40, 80);
+      g.clear();
+      g.fillStyle(15921906, 1);
+      g.fillRoundedRect(0, 0, 40, 80, 10);
+      g.fillStyle(16771491, 1);
+      g.fillRoundedRect(8, 10, 24, 62, 8);
+      g.generateTexture("door_open", 40, 80);
       g.clear();
       g.fillStyle(16777215, 1);
       g.fillRoundedRect(4, 8, 32, 28, 6);
@@ -232,6 +238,19 @@
       row(w, [0, "x".repeat(18)], [20, "x".repeat(16)], [38, "x".repeat(22)])
     ];
   })();
+  var W0S3 = (() => {
+    const w = 64;
+    return [
+      row(w, [22, "R R R"]),
+      row(w, [40, "R R"]),
+      row(w),
+      row(w, [16, "xxxx"], [36, "xxxx"]),
+      row(w, [12, "N"], [34, "N"], [50, "N"]),
+      row(w),
+      row(w, [2, "P"], [8, "R"], [10, "R"], [26, "C"], [42, "S"], [56, "R"], [58, "R"], [62, "G"]),
+      row(w, [0, "x".repeat(18)], [21, "x".repeat(9)], [33, "x".repeat(8)], [44, "x".repeat(20)])
+    ];
+  })();
   var W0BOSS = (() => {
     const w = 38;
     return [
@@ -269,6 +288,19 @@
       row(w),
       row(w, [2, "P"], [8, "S"], [34, "S"], [44, "C"], [56, "G"]),
       row(w, [0, "x".repeat(20)], [22, "x".repeat(14)], [40, "x".repeat(22)])
+    ];
+  })();
+  var W1S3 = (() => {
+    const w = 66;
+    return [
+      row(w, [16, "R R R"], [46, "R R"]),
+      row(w),
+      row(w, [30, "R"]),
+      row(w, [28, "xxxxx"]),
+      row(w, [12, "N"], [36, "N"], [54, "N"]),
+      row(w),
+      row(w, [2, "P"], [8, ">"], [24, "C"], [40, "S"], [50, "S"], [64, "G"]),
+      row(w, [0, "x".repeat(18)], [21, "x".repeat(15)], [39, "x".repeat(27)])
     ];
   })();
   var W1BOSS = (() => {
@@ -310,6 +342,19 @@
       row(w, [0, "x".repeat(26)], [26, "D"], [27, "x".repeat(8)], [35, "I".repeat(4)], [39, "x".repeat(4)], [45, "x".repeat(15)])
     ];
   })();
+  var W2S3 = (() => {
+    const w = 64;
+    return [
+      row(w),
+      row(w, [12, "R R"], [48, "R R"]),
+      row(w, [12, "M"], [46, "M"]),
+      row(w, [32, "xxxx"]),
+      row(w, [16, "N"], [50, "N"]),
+      row(w),
+      row(w, [2, "P"], [8, "R"], [24, "D"], [40, "C"], [48, "S"], [56, "G"]),
+      row(w, [0, "x".repeat(24)], [24, "D"], [25, "x".repeat(8)], [33, "I".repeat(5)], [38, "x".repeat(26)])
+    ];
+  })();
   var W2BOSS = (() => {
     const w = 40;
     return [
@@ -347,6 +392,19 @@
       row(w, [34, "W"], [36, "W"]),
       row(w, [2, "P"], [8, "R"], [20, "N"], [40, "C"], [48, "S"], [52, "G"]),
       row(w, [0, "x".repeat(24)], [27, "x".repeat(27)])
+    ];
+  })();
+  var W3S3 = (() => {
+    const w = 58;
+    return [
+      row(w, [34, "R R"]),
+      row(w, [33, "xxxxxxxx"]),
+      row(w, [36, "W"], [38, "W"]),
+      row(w, [36, "W"], [38, "W"]),
+      row(w, [36, "W"], [38, "W"]),
+      row(w, [36, "W"], [38, "W"]),
+      row(w, [2, "P"], [8, "R"], [16, "N"], [24, "N"], [42, "C"], [50, "S"], [56, "G"]),
+      row(w, [0, "x".repeat(26)], [29, "x".repeat(29)])
     ];
   })();
   var W3BOSS = (() => {
@@ -388,6 +446,19 @@
       row(w, [0, "x".repeat(20)], [20, "D"], [21, "x".repeat(13)], [40, "x".repeat(20)])
     ];
   })();
+  var W4S3 = (() => {
+    const w = 64;
+    return [
+      row(w, [14, "R R"], [46, "R R"]),
+      row(w),
+      row(w, [30, "M"]),
+      row(w, [50, "xxxx"]),
+      row(w, [22, "N"], [38, "N"]),
+      row(w),
+      row(w, [2, "P"], [8, "R"], [20, "D"], [44, "C"], [52, "S"], [60, "G"]),
+      row(w, [0, "x".repeat(20)], [20, "D"], [21, "x".repeat(15)], [39, "x".repeat(25)])
+    ];
+  })();
   var W4BOSS = (() => {
     const w = 44;
     return [
@@ -425,6 +496,19 @@
       row(w),
       row(w, [2, "P"], [8, "R"], [40, "C"], [48, "S"], [54, "G"]),
       row(w, [0, "x".repeat(24)], [24, "K".repeat(6)], [30, "x".repeat(28)])
+    ];
+  })();
+  var W5S3 = (() => {
+    const w = 62;
+    return [
+      row(w, [12, "R R"], [46, "R R"]),
+      row(w),
+      row(w, [30, "xxKKx"]),
+      row(w),
+      row(w, [16, "N"], [34, "N"], [48, "N"]),
+      row(w),
+      row(w, [2, "P"], [8, "R"], [42, "C"], [50, "S"], [58, "G"]),
+      row(w, [0, "x".repeat(22)], [22, "U".repeat(4)], [26, "x".repeat(10)], [36, "K".repeat(6)], [42, "x".repeat(20)])
     ];
   })();
   var W5BOSS = (() => {
@@ -466,6 +550,19 @@
       row(w, [0, "x".repeat(24)], [38, "x".repeat(20)])
     ];
   })();
+  var W6S3 = (() => {
+    const w = 60;
+    return [
+      row(w, [16, "R R"], [44, "R R"], [24, "FFFFFF"], [38, "FFFFFF"]),
+      row(w, [24, "FFFFFF"], [38, "FFFFFF"]),
+      row(w, [24, "FFFFFF"], [38, "FFFFFF"], [32, "xxxx"]),
+      row(w, [14, "N"], [24, "FFFFFF"], [38, "FFFFFF"], [46, "N"]),
+      row(w, [24, "FFFFFF"], [38, "FFFFFF"]),
+      row(w, [24, "FFFFFF"], [38, "FFFFFF"]),
+      row(w, [2, "P"], [8, "R"], [24, "FFFFFF"], [38, "FFFFFF"], [44, "C"], [52, "S"], [56, "G"]),
+      row(w, [0, "x".repeat(22)], [34, "x".repeat(26)])
+    ];
+  })();
   var W6BOSS = (() => {
     const w = 40;
     return [
@@ -503,6 +600,19 @@
       row(w, [30, "O"]),
       row(w, [2, "P"], [8, ">"], [50, "C"], [56, "G"]),
       row(w, [0, "x".repeat(24)], [36, "x".repeat(24)])
+    ];
+  })();
+  var W7S3 = (() => {
+    const w = 62;
+    return [
+      row(w, [14, "R R"], [48, "R R"]),
+      row(w),
+      row(w),
+      row(w),
+      row(w, [12, "N"], [34, "N"], [50, "N"]),
+      row(w, [24, "O"], [42, "O"]),
+      row(w, [2, "P"], [8, ">"], [46, "C"], [52, "S"], [58, "G"]),
+      row(w, [0, "x".repeat(20)], [40, "x".repeat(22)])
     ];
   })();
   var W7BOSS = (() => {
@@ -544,6 +654,19 @@
       row(w, [0, "x".repeat(20)], [20, "L".repeat(6)], [26, "x".repeat(14)], [40, "K".repeat(5)], [45, "x".repeat(15)])
     ];
   })();
+  var W8S3 = (() => {
+    const w = 64;
+    return [
+      row(w, [12, "R R"], [48, "R R"]),
+      row(w),
+      row(w, [30, "xxxx"]),
+      row(w),
+      row(w, [16, "N"], [34, "N"], [50, "N"]),
+      row(w),
+      row(w, [2, "P"], [8, "R"], [44, "C"], [54, "S"], [60, "G"]),
+      row(w, [0, "x".repeat(16)], [16, "LL"], [18, "x".repeat(10)], [28, "K".repeat(5)], [33, "x".repeat(9)], [42, "L".repeat(4)], [46, "x".repeat(18)])
+    ];
+  })();
   var W8BOSS = (() => {
     const w = 44;
     return [
@@ -573,7 +696,7 @@
       rewardKey: "doubleJump",
       rewardLabel: "Double Jump",
       hint: "Arrows to move, UP to jump. Grab rings, avoid spikes!",
-      stages: [{ type: "normal", map: W0S1 }, { type: "normal", map: W0S2 }, { type: "boss", map: W0BOSS }]
+      stages: [{ type: "normal", map: W0S1 }, { type: "normal", map: W0S2 }, { type: "normal", map: W0S3 }, { type: "boss", map: W0BOSS }]
     },
     {
       name: "Ocean Kingdom",
@@ -587,7 +710,7 @@
       rewardKey: "spinDash",
       rewardLabel: "Spin Dash",
       hint: "NEW! Press UP again in mid-air to DOUBLE JUMP over wide gaps!",
-      stages: [{ type: "normal", map: W1S1 }, { type: "normal", map: W1S2 }, { type: "boss", map: W1BOSS }]
+      stages: [{ type: "normal", map: W1S1 }, { type: "normal", map: W1S2 }, { type: "normal", map: W1S3 }, { type: "boss", map: W1BOSS }]
     },
     {
       name: "Snow Mountains",
@@ -601,7 +724,7 @@
       rewardKey: "wallJump",
       rewardLabel: "Wall Jump",
       hint: "NEW! Hold DOWN then let go to SPIN DASH through cracked ice walls!",
-      stages: [{ type: "normal", map: W2S1 }, { type: "normal", map: W2S2 }, { type: "boss", map: W2BOSS }]
+      stages: [{ type: "normal", map: W2S1 }, { type: "normal", map: W2S2 }, { type: "normal", map: W2S3 }, { type: "boss", map: W2BOSS }]
     },
     {
       name: "Sky Kingdom",
@@ -615,7 +738,7 @@
       rewardKey: "homingAttack",
       rewardLabel: "Homing Attack",
       hint: "NEW! Jump into a wall and press UP again to WALL JUMP up shafts!",
-      stages: [{ type: "normal", map: W3S1 }, { type: "normal", map: W3S2 }, { type: "boss", map: W3BOSS }]
+      stages: [{ type: "normal", map: W3S1 }, { type: "normal", map: W3S2 }, { type: "normal", map: W3S3 }, { type: "boss", map: W3BOSS }]
     },
     {
       name: "Volcano World",
@@ -629,7 +752,7 @@
       rewardKey: "airDash",
       rewardLabel: "Air Dash",
       hint: "NEW! Press X near an enemy in mid-air for a HOMING ATTACK!",
-      stages: [{ type: "normal", map: W4S1 }, { type: "normal", map: W4S2 }, { type: "boss", map: W4BOSS }]
+      stages: [{ type: "normal", map: W4S1 }, { type: "normal", map: W4S2 }, { type: "normal", map: W4S3 }, { type: "boss", map: W4BOSS }]
     },
     {
       name: "Crystal Cave",
@@ -643,7 +766,7 @@
       rewardKey: "groundPound",
       rewardLabel: "Ground Pound",
       hint: "NEW! Press DOWN in mid-air to GROUND POUND \u2014 smashes nearby enemies! Watch for sticky mud and crumbling rock.",
-      stages: [{ type: "normal", map: W5S1 }, { type: "normal", map: W5S2 }, { type: "boss", map: W5BOSS }]
+      stages: [{ type: "normal", map: W5S1 }, { type: "normal", map: W5S2 }, { type: "normal", map: W5S3 }, { type: "boss", map: W5BOSS }]
     },
     {
       name: "Haunted Forest",
@@ -657,7 +780,7 @@
       rewardKey: "ringMagnet",
       rewardLabel: "Ring Magnet",
       hint: "NEW! Rings now fly to you automatically! Ride the ghostly wind currents to cross wide chasms.",
-      stages: [{ type: "normal", map: W6S1 }, { type: "normal", map: W6S2 }, { type: "boss", map: W6BOSS }]
+      stages: [{ type: "normal", map: W6S1 }, { type: "normal", map: W6S2 }, { type: "normal", map: W6S3 }, { type: "boss", map: W6BOSS }]
     },
     {
       name: "Cyber City",
@@ -671,7 +794,7 @@
       rewardKey: "shield",
       rewardLabel: "Shield",
       hint: "NEW! You'll periodically generate a SHIELD that blocks one hit for free. Ride the hover platforms across the gaps!",
-      stages: [{ type: "normal", map: W7S1 }, { type: "normal", map: W7S2 }, { type: "boss", map: W7BOSS }]
+      stages: [{ type: "normal", map: W7S1 }, { type: "normal", map: W7S2 }, { type: "normal", map: W7S3 }, { type: "boss", map: W7BOSS }]
     },
     {
       name: "Cogsworth's Fortress",
@@ -685,7 +808,7 @@
       rewardKey: null,
       rewardLabel: "Super Transformation",
       hint: "FINAL WORLD! Watch out for LAVA \u2014 it's not just a fall, it burns! Give it everything you've got.",
-      stages: [{ type: "normal", map: W8S1 }, { type: "normal", map: W8S2 }, { type: "boss", map: W8BOSS }]
+      stages: [{ type: "normal", map: W8S1 }, { type: "normal", map: W8S2 }, { type: "normal", map: W8S3 }, { type: "boss", map: W8BOSS }]
     }
   ];
   var FINAL_WORLD_INDEX = WORLDS.length - 1;
@@ -1935,11 +2058,12 @@
       this.bossRush = !!data.bossRush;
       this.bossRushStartTime = data.bossRushStartTime || null;
       this.worldIndex = this.bossRush ? data.bossRushIndex || 0 : data.worldIndex || 0;
-      this.stageIndex = this.bossRush ? 2 : data.stageIndex || 0;
+      this.world = WORLDS[this.worldIndex];
+      const bossStageIndex = this.world.stages.findIndex((s) => s.type === "boss");
+      this.stageIndex = this.bossRush ? bossStageIndex : data.stageIndex || 0;
       this.score = data.score || 0;
       this.playerName = data.playerName || "Player";
       this.profileTint = data.profileTint || 16777215;
-      this.world = WORLDS[this.worldIndex];
       this.stageData = this.world.stages[this.stageIndex];
       this.theme = THEMES[this.world.theme];
       this.isInvulnerable = false;
@@ -2117,7 +2241,7 @@
           else if (ch === ">") this.speedpads.create(px, py, "speedpad");
           else if (ch === "C") this.checkpoints.create(px, py, "checkpoint");
           else if (ch === "D") this.breakables.create(px, py, "breakable").setTint(this.theme.groundTop);
-          else if (ch === "G") this.goal.create(px, py - 20, "goal");
+          else if (ch === "G") this.goal.create(px, py - 20, "door_closed").opened = false;
           else if (ch === "N") {
             let e = this.enemies.create(px, py, "enemy").setTint(this.theme.groundBody);
             e.startX = px;
@@ -2569,6 +2693,14 @@ Click to continue`,
           if (d < 140) this.physics.moveToObject(r, this.player, 480);
         });
       }
+      this.goal.getChildren().forEach((door) => {
+        if (!door.opened && Phaser.Math.Distance.Between(this.player.x, this.player.y, door.x, door.y) < 90) {
+          door.opened = true;
+          door.setTexture("door_open");
+          this.doorOpenEffect(door.x, door.y);
+          this.tweens.add({ targets: door, scaleX: 1.12, scaleY: 1.06, duration: 140, yoyo: true, ease: "Quad.easeOut" });
+        }
+      });
       if (this.shieldGfx) this.shieldGfx.setPosition(this.player.x, this.player.y).setVisible(this.hasShield);
       if (this.boss && this.boss.active) {
         const speed = (1 + this.bossPhase * 0.6) * (this.superMode ? 1.4 : 1);
@@ -2691,6 +2823,12 @@ Click to continue`,
       const emitter = particles.createEmitter({ tint: [16772608, 16777215], speed: { min: 40, max: 100 }, lifespan: 250, quantity: 6, scale: { start: 0.6, end: 0 }, on: false });
       emitter.explode(6, x, y);
       this.time.delayedCall(300, () => particles.destroy());
+    }
+    doorOpenEffect(x, y) {
+      const particles = this.add.particles("particle");
+      const emitter = particles.createEmitter({ tint: [16771491, 16777215], speed: { min: 60, max: 140 }, lifespan: 380, quantity: 14, scale: { start: 0.7, end: 0 }, on: false });
+      emitter.explode(14, x, y);
+      this.time.delayedCall(420, () => particles.destroy());
     }
     jumpEffect() {
       const particles = this.add.particles("particle");

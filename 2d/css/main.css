@@ -54,27 +54,17 @@ body {
   transition: box-shadow 0.3s;
 }
 
-/* On larger screens there's room to spare — bring back the "floating premium
-   window" look instead of a full-bleed canvas. */
+/* On larger screens, keep a bit of "premium window" polish, but never stop
+   filling the viewport — full-bleed edge-to-edge on any display size,
+   desktop included, same as mobile/tablet. An inset glow doesn't consume
+   any layout space, so it costs zero screen real estate either way. */
 @media (min-width: 900px) and (min-height: 700px) {
-  #game-wrapper {
-    width: 100%;
-    height: 100%;
-  }
   #game-container {
-    width: auto;
-    height: auto;
-    max-width: 900px;
-    max-height: 700px;
-    padding: 4px;
-    border: 3px solid #2a4a6a;
-    border-radius: 8px;
-    box-shadow: 0 0 40px rgba(0, 160, 255, 0.4);
-    transition: box-shadow 0.3s, border-color 0.3s;
+    box-shadow: inset 0 0 80px rgba(0, 160, 255, 0.18);
+    transition: box-shadow 0.3s;
   }
   #game-container.boss-mode {
-    box-shadow: 0 0 60px rgba(255, 50, 0, 0.6);
-    border-color: #ff4444;
+    box-shadow: inset 0 0 100px rgba(255, 50, 0, 0.35);
   }
 }
 

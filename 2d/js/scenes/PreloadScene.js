@@ -42,9 +42,15 @@ export class PreloadScene extends Phaser.Scene {
     g.generateTexture("spring", 40, 40); g.clear();
     g.fillStyle(0xffaa00, 1); g.fillTriangle(0, 10, 40, 20, 0, 30);
     g.generateTexture("speedpad", 40, 40); g.clear();
-    g.fillStyle(0xeeeeee, 1); g.fillRect(0, 0, 40, 80);
-    g.fillStyle(0x000000, 1); g.fillRect(10, 10, 20, 60);
-    g.generateTexture("goal", 40, 80); g.clear();
+    // Level-end door — two textures for the same frame, swapped at runtime
+    // (GameScene#buildLevel / #update) as the player approaches: dark
+    // doorway while closed, warm glow once opened.
+    g.fillStyle(0xf2f2f2, 1); g.fillRoundedRect(0, 0, 40, 80, 10);
+    g.fillStyle(0x14141c, 1); g.fillRoundedRect(8, 10, 24, 62, 8);
+    g.generateTexture("door_closed", 40, 80); g.clear();
+    g.fillStyle(0xf2f2f2, 1); g.fillRoundedRect(0, 0, 40, 80, 10);
+    g.fillStyle(0xffe9a3, 1); g.fillRoundedRect(8, 10, 24, 62, 8);
+    g.generateTexture("door_open", 40, 80); g.clear();
     g.fillStyle(0xffffff, 1); g.fillRoundedRect(4, 8, 32, 28, 6);
     g.fillStyle(0x222222, 1); g.fillCircle(14, 20, 4); g.fillCircle(26, 20, 4);
     g.generateTexture("enemy", 40, 40); g.clear();

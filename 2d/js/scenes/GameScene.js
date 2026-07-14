@@ -15,16 +15,19 @@ export class GameScene extends Phaser.Scene {
 
   init(data) {
     // Boss Rush reuses each world's existing boss stage back-to-back — no
-    // new level data needed. Always lands on that world's boss map (index 2)
-    // regardless of what stageIndex was passed.
+    // new level data needed. Always lands on that world's boss map regardless
+    // of what stageIndex was passed. Found by type rather than a hardcoded
+    // index — worlds don't all have the same number of normal stages before
+    // their boss.
     this.bossRush = !!data.bossRush;
     this.bossRushStartTime = data.bossRushStartTime || null;
     this.worldIndex = this.bossRush ? data.bossRushIndex || 0 : data.worldIndex || 0;
-    this.stageIndex = this.bossRush ? 2 : data.stageIndex || 0;
+    this.world = WORLDS[this.worldIndex];
+    const bossStageIndex = this.world.stages.findIndex((s) => s.type === "boss");
+    this.stageIndex = this.bossRush ? bossStageIndex : data.stageIndex || 0;
     this.score = data.score || 0;
     this.playerName = data.playerName || "Player";
     this.profileTint = data.profileTint || 0xffffff;
-    this.world = WORLDS[this.worldIndex];
     this.stageData = this.world.stages[this.stageIndex];
     this.theme = THEMES[this.world.theme];
     this.isInvulnerable = false;
@@ -225,7 +228,7 @@ export class GameScene extends Phaser.Scene {
         else if (ch === ">") this.speedpads.create(px, py, "speedpad");
         else if (ch === "C") this.checkpoints.create(px, py, "checkpoint");
         else if (ch === "D") this.breakables.create(px, py, "breakable").setTint(this.theme.groundTop);
-        else if (ch === "G") this.goal.create(px, py - 20, "goal");
+        else if (ch === "G") this.goal.create(px, py - 20, "door_closed").opened = false;
         else if (ch === "N") {
           let e = this.enemies.create(px, py, "enemy").setTint(this.theme.groundBody);
           e.startX = px; e.dir = 1;
@@ -679,6 +682,23 @@ export class GameScene extends Phaser.Scene {
       });
     }
 
+    // Level-end door: closed until the player actually arrives, then pops
+    // open with a glow + particle burst — a bit of arrival ceremony instead
+    // of a goal marker that's already just sitting there wide open. The
+    // radius here is well outside actual overlap distance, so in normal
+    // play the door has always finished opening before reachGoal() fires;
+    // reachGoal() itself doesn't check `opened`, so a very fast approach
+    // (e.g. a full-speed dash) still completes the level even if the open
+    // animation gets skipped over.
+    this.goal.getChildren().forEach((door) => {
+      if (!door.opened && Phaser.Math.Distance.Between(this.player.x, this.player.y, door.x, door.y) < 90) {
+        door.opened = true;
+        door.setTexture("door_open");
+        this.doorOpenEffect(door.x, door.y);
+        this.tweens.add({ targets: door, scaleX: 1.12, scaleY: 1.06, duration: 140, yoyo: true, ease: "Quad.easeOut" });
+      }
+    });
+
     if (this.shieldGfx) this.shieldGfx.setPosition(this.player.x, this.player.y).setVisible(this.hasShield);
 
     if (this.boss && this.boss.active) {
@@ -809,6 +829,13 @@ export class GameScene extends Phaser.Scene {
     const emitter = particles.createEmitter({ tint: [0xffee00, 0xffffff], speed: { min: 40, max: 100 }, lifespan: 250, quantity: 6, scale: { start: 0.6, end: 0 }, on: false });
     emitter.explode(6, x, y);
     this.time.delayedCall(300, () => particles.destroy());
+  }
+
+  doorOpenEffect(x, y) {
+    const particles = this.add.particles("particle");
+    const emitter = particles.createEmitter({ tint: [0xffe9a3, 0xffffff], speed: { min: 60, max: 140 }, lifespan: 380, quantity: 14, scale: { start: 0.7, end: 0 }, on: false });
+    emitter.explode(14, x, y);
+    this.time.delayedCall(420, () => particles.destroy());
   }
 
   jumpEffect() {
